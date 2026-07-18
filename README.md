@@ -42,7 +42,7 @@ Use `status` to see completed and pending stages.
 
 The generated application lives under `stages/05-build/output/`. Release evidence and any candidate LLL registration artifacts live under `stages/07-release/output/`.
 
-The coordinated Central, federation, hosted-node, and hackathon work is described in `docs/HACKATHON-FEDERATION-PLAN.md`.
+The application-focused Build Week phases and Central companion demo are described in `docs/HACKATHON-APPLICATION-PLAN.md`.
 
 ## Context layers
 
