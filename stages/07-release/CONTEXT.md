@@ -1,6 +1,6 @@
 # Stage 07: Release
 
-Package the validated application for its approved own-domain, standalone, or LLL network path.
+Package the validated application for its approved own-domain, standalone, hybrid, LLL-hosted, or LLL network path.
 
 ## Inputs
 
@@ -18,15 +18,17 @@ Package the validated application for its approved own-domain, standalone, or LL
 1. Refuse release when required validation is not PASS.
 2. Produce deployment instructions, environment inventory, migration, backup, restore, monitoring, update, and rollback material.
 3. For an own-domain app, verify domain, TLS, origins, privacy, and operator ownership.
-4. For LLL compatibility, include pinned contract and conformance evidence without claiming membership.
-5. For registration, generate only a candidate manifest with placeholders for human-reviewed operator data.
-6. Produce a release checklist and remaining operator actions.
+4. For a hybrid app, verify independent product operation, explicit `uiUrl` and `apiBaseUrl`, adapter disable behavior, and separate user and node credentials.
+5. For an LLL-hosted app, verify delegated DNS/TLS, tenant boundary, operator access, quota, export, deletion, backup, and graduation instructions.
+6. For LLL compatibility, include pinned contract and conformance evidence without claiming membership.
+7. For registration, generate only a candidate manifest with placeholders for human-reviewed operator data.
+8. Produce a release checklist and remaining operator actions.
 
 ## Checkpoint
 
 | After step | Agent presents | Human decides |
 |---|---|---|
-| 5 | Public claims, operator data, visibility, and release evidence | Approve deployment or manifest submission |
+| 7 | Public claims, operator data, visibility, hosting ownership, and release evidence | Approve deployment or manifest submission |
 
 ## Audit
 

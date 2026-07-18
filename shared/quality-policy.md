@@ -34,6 +34,8 @@
 
 - package, migrations, backup, restore, health, logs, and recovery are proven
 - domain, TLS, origins, and secrets are correct
+- hybrid releases prove local operation with the network adapter disabled and keep product and node credentials separate
+- hosted releases prove tenant isolation, delegated DNS/TLS, export, deletion, backup, and graduation to an owner domain
 - LLL contract revision is pinned and external conformance passes
 - registry artifact validates and human approval precedes membership claims
 

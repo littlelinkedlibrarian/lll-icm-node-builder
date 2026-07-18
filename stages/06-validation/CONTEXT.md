@@ -18,9 +18,11 @@ Verify the built project against its contracts, user journeys, operations, and s
 1. Start from a clean checkout or equivalent clean project state.
 2. Run static checks, unit tests, integration tests, external contract tests, and selected end-to-end journeys.
 3. Test restart persistence, OpenAI outage, network outage, and missing-vector behavior when applicable.
-4. Run secret, dependency, license, migration, backup, restore, health, and recovery checks required by the architecture.
-5. Compare observed evidence with every acceptance row.
-6. Mark failures without weakening the specification. Fix Stage 05 output and rerun this stage.
+4. For connected paths, prove product operation with the LLL adapter disabled; prove paired-coordinate validation, zero coordinates, unknown-location policy, stale heartbeat, health-failure exclusion, privacy, partial network failure, and that one application's user bearer token is not forwarded into another authentication realm.
+5. For LLL-hosted paths, prove tenant isolation, delegated hostname and TLS, operator access, backup, export, deletion, rollback, and the documented graduation path.
+6. Run secret, dependency, license, migration, backup, restore, health, and recovery checks required by the architecture.
+7. Compare observed evidence with every acceptance row.
+8. Mark failures without weakening the specification. Fix Stage 05 output and rerun this stage.
 
 ## Audit
 
