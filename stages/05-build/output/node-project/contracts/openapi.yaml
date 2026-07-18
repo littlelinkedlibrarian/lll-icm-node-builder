@@ -1,0 +1,265 @@
+openapi: 3.1.0
+info:
+  title: LLL ICM Reference Node
+  version: 0.1.0
+  description: |
+    Contract-first hybrid node. The six anonymous reads preserve the pinned
+    LLL Lite 0.1.0 profile; management writes use the node's separate token.
+servers:
+  - url: http://localhost:3000
+paths:
+  /health:
+    get:
+      operationId: health
+      responses:
+        "200":
+          description: Node and local dependencies are ready.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status, timestamp]
+                properties:
+                  status: { type: string, const: ok }
+                  timestamp: { type: string, format: date-time }
+                  database: { type: string }
+                  vector: { type: string }
+                  openai: { type: string }
+  /api/boxes:
+    get:
+      operationId: listBoxes
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Visible boxes.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedBoxes"
+  /api/boxes/{id}:
+    get:
+      operationId: getBox
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Visible box.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/LibraryBox" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/boxes/{id}/books:
+    get:
+      operationId: listBoxBooks
+      parameters:
+        - $ref: "#/components/parameters/Id"
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Visible books in a visible box.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PagedBooks" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/books:
+    get:
+      operationId: listBooks
+      parameters:
+        - $ref: "#/components/parameters/Page"
+        - $ref: "#/components/parameters/Limit"
+      responses:
+        "200":
+          description: Visible books.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PagedBooks" }
+  /api/books/{id}:
+    get:
+      operationId: getBook
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200":
+          description: Visible book.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/Book" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/search:
+    get:
+      operationId: searchBooks
+      parameters:
+        - in: query
+          name: q
+          required: true
+          schema: { type: string }
+        - in: query
+          name: boxId
+          schema: { type: string, format: uuid }
+      responses:
+        "200":
+          description: Semantic, keyword, or fallback results.
+  /api/manage/boxes:
+    post:
+      operationId: createBox
+      security: [{ operatorToken: [] }]
+      responses:
+        "201": { description: Box created. }
+        "401": { $ref: "#/components/responses/Unauthorized" }
+  /api/manage/boxes/{id}:
+    patch:
+      operationId: updateBox
+      security: [{ operatorToken: [] }]
+      responses:
+        "200": { description: Box updated. }
+    delete:
+      operationId: deleteBox
+      security: [{ operatorToken: [] }]
+      responses:
+        "204": { description: Empty box deleted. }
+        "409": { description: Box contains books. }
+  /api/manage/books:
+    post:
+      operationId: createBook
+      security: [{ operatorToken: [] }]
+      responses:
+        "201": { description: Book created. }
+  /api/manage/books/{id}:
+    patch:
+      operationId: updateBook
+      security: [{ operatorToken: [] }]
+      responses:
+        "200": { description: Book updated. }
+    delete:
+      operationId: deleteBook
+      security: [{ operatorToken: [] }]
+      responses:
+        "204": { description: Book and vector linkage deleted. }
+  /api/manage/candidates/analyze:
+    post:
+      operationId: analyzeBookImage
+      security: [{ operatorToken: [] }]
+      responses:
+        "201": { description: Pending candidate created. }
+        "503": { description: OpenAI is unavailable; manual CRUD remains available. }
+  /api/manage/candidates/{id}:
+    get:
+      operationId: getCandidate
+      security: [{ operatorToken: [] }]
+      responses:
+        "200": { description: Candidate returned. }
+    patch:
+      operationId: correctCandidate
+      security: [{ operatorToken: [] }]
+      responses:
+        "200": { description: Pending candidate corrected. }
+  /api/manage/candidates/{id}/reject:
+    post:
+      operationId: rejectCandidate
+      security: [{ operatorToken: [] }]
+      responses:
+        "200": { description: Candidate rejected. }
+  /api/manage/candidates/{id}/confirm:
+    post:
+      operationId: confirmCandidate
+      security: [{ operatorToken: [] }]
+      responses:
+        "200": { description: Idempotently confirmed candidate and canonical book. }
+components:
+  securitySchemes:
+    operatorToken:
+      type: http
+      scheme: bearer
+      description: Local node operator token; never a Central user token.
+  parameters:
+    Id:
+      in: path
+      name: id
+      required: true
+      schema: { type: string, format: uuid }
+    Page:
+      in: query
+      name: page
+      schema: { type: integer, minimum: 1, default: 1 }
+    Limit:
+      in: query
+      name: limit
+      schema: { type: integer, minimum: 1, maximum: 50, default: 20 }
+  responses:
+    NotFound:
+      description: Record not found.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+    Unauthorized:
+      description: Local operator token required.
+      content:
+        application/json:
+          schema: { $ref: "#/components/schemas/Error" }
+  schemas:
+    Error:
+      type: object
+      required: [error, message]
+      properties:
+        error: { type: string }
+        message: { type: string }
+    Pagination:
+      type: object
+      required: [page, limit, total, hasMore]
+      properties:
+        page: { type: integer }
+        limit: { type: integer }
+        total: { type: integer }
+        hasMore: { type: boolean }
+    Book:
+      type: object
+      required: [id, title, author, condition, createdAt, updatedAt]
+      properties:
+        id: { type: string, format: uuid }
+        libraryBoxId: { type: [string, "null"], format: uuid }
+        addedByUserId: { type: [string, "null"], format: uuid }
+        title: { type: string }
+        author: { type: string }
+        isbn: { type: [string, "null"] }
+        coverUrl: { type: [string, "null"] }
+        genre: { type: [string, "null"] }
+        condition: { type: string, enum: [new, like_new, good, fair, poor] }
+        description: { type: [string, "null"] }
+        summary: { type: [string, "null"] }
+        publicationYear: { type: [integer, "null"] }
+        pageCount: { type: [integer, "null"] }
+        language: { type: [string, "null"] }
+        aiExtracted: { type: boolean }
+        confidence: { type: integer }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+    LibraryBox:
+      type: object
+      required: [id, name, description, location, createdAt, updatedAt, bookCount]
+      properties:
+        id: { type: string, format: uuid }
+        name: { type: string }
+        description: { type: string }
+        location: { type: string }
+        latitude: { type: [string, "null"] }
+        longitude: { type: [string, "null"] }
+        imageUrl: { type: [string, "null"] }
+        ownerId: { type: [string, "null"], format: uuid }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        bookCount: { type: integer }
+    PagedBooks:
+      type: object
+      required: [data, pagination]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/Book" } }
+        pagination: { $ref: "#/components/schemas/Pagination" }
+    PagedBoxes:
+      type: object
+      required: [data, pagination]
+      properties:
+        data: { type: array, items: { $ref: "#/components/schemas/LibraryBox" } }
+        pagination: { $ref: "#/components/schemas/Pagination" }
