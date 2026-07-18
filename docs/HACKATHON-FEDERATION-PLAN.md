@@ -49,7 +49,7 @@ Central work:
 - Translate aggregate `lat/lng` inputs to discovery `nearLat/nearLng` correctly.
 - Define missing and zero-coordinate behavior.
 - Separate administrative status from heartbeat freshness and observed reachability.
-- Filter discovery by required capability and privacy.
+- Filter discovery by privacy, heartbeat freshness, observed health, and proximity.
 - Add aggregate-level proximity and stale-node tests.
 
 Exit evidence: eligible nodes are selected deterministically from documented policy.
@@ -58,6 +58,7 @@ Exit evidence: eligible nodes are selected deterministically from documented pol
 
 - Publish a strict, versioned aggregator-facing OpenAPI profile.
 - Define health, capabilities, books, boxes, box books, search, pagination, errors, authentication, source identity, `uiUrl`, and `apiBaseUrl`.
+- Persist canonical capability identifiers and add capability-aware discovery only after that profile is pinned.
 - Keep node control-plane endpoints separate from catalog and search endpoints.
 - Add provider conformance tests usable by any stack.
 - Add Central consumer-driven tests and a real Central-to-reference-node integration test.
