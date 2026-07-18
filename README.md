@@ -11,6 +11,8 @@ There is no reference application. Numbered folders are the orchestration layer.
 - a complete application in any suitable language and datastore
 - an independent library app for the learner's domain
 - a standalone LLL-compatible node
+- a hybrid node with its own branded domain and an LLL interoperability adapter
+- an LLL-hosted node for learners who are not ready to manage DNS or hosting
 - a node prepared for human-reviewed LLL network registration
 
 AI is optional. When selected, generated AI features use OpenAI models. Vector infrastructure is introduced only when an approved user experience needs semantic, multilingual, recommendation, deduplication, or similarity behavior.
@@ -39,6 +41,8 @@ Use `status` to see completed and pending stages.
 ```
 
 The generated application lives under `stages/05-build/output/`. Release evidence and any candidate LLL registration artifacts live under `stages/07-release/output/`.
+
+The coordinated Central, federation, hosted-node, and hackathon work is described in `docs/HACKATHON-FEDERATION-PLAN.md`.
 
 ## Context layers
 
