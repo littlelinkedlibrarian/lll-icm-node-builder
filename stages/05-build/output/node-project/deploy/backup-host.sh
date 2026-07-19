@@ -13,4 +13,4 @@ docker compose --project-name happybox --env-file "${runtime_env}" \
 
 docker compose --project-name happybox --env-file "${runtime_env}" \
   -f "${project_dir}/compose.production.yaml" exec -T app \
-  sh -lc "mkdir -p /app/data/media && tar -C /app/data -czf /app/backups/lll-media-.tar.gz media"
+  sh -lc "mkdir -p /app/data/media && tar -C /app/data -czf /app/backups/lll-media-${stamp}.tar.gz media"
