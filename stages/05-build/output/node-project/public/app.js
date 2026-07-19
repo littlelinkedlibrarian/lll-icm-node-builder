@@ -191,7 +191,7 @@ document.addEventListener("click", async event => {
 
 document.querySelector("#assorted-form").addEventListener("submit", async event => {
   event.preventDefault(); return requireOperator(async () => {
-    const file = document.querySelector("#assorted-image").files[0]; const status = document.querySelector("#assorted-status"); if (!document.querySelector("#scan-box").value) { status.textContent = "Choose a destination box first."; return; } if (!file) return;
+    const file = document.querySelector("#assorted-camera").files[0] || document.querySelector("#assorted-image").files[0]; const status = document.querySelector("#assorted-status"); if (!document.querySelector("#scan-box").value) { status.textContent = "Choose a destination box first."; return; } if (!file) return;
     status.textContent = "Saving locally first, then asking OpenAI what remains uncertain…";
     try {
       const imageBase64 = await fileBase64(file);
@@ -218,7 +218,7 @@ $$('[data-view]').forEach(button => button.addEventListener("click", () => { $$(
 $("#search-form").addEventListener("submit", async event => { event.preventDefault(); const query = new URLSearchParams({ q: $("#search-query").value }); if ($("#search-box").value) query.set("boxId", $("#search-box").value); try { const result = await api(`/api/search?${query}`, { manage: false }); renderBooks(result.data, result.mode); } catch (error) { toast(error.message); } });
 
 $("#scan-form").addEventListener("submit", async event => {
-  event.preventDefault(); return requireOperator(async () => { const file = $("#scan-image").files[0]; const status = $("#scan-status"); if (!$("#scan-box").value) { status.textContent = "Choose a destination box first."; return; } if (!file) return; status.textContent = "GPT-5.6 is looking across the whole image for books…";
+  event.preventDefault(); return requireOperator(async () => { const file = $("#scan-camera").files[0] || $("#scan-image").files[0]; const status = $("#scan-status"); if (!$("#scan-box").value) { status.textContent = "Choose a destination box first."; return; } if (!file) return; status.textContent = "GPT-5.6 is looking across the whole image for books…";
     try {
       const imageBase64 = await fileBase64(file);
       const batch = await api("/api/manage/candidates/analyze", { method: "POST", body: { boxId: $("#scan-box").value, mimeType: file.type, imageBase64 } });

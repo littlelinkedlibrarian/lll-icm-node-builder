@@ -44,4 +44,4 @@ spec:
             host: happybox-docker.lll.svc.cluster.local
             port:
               number: 3000
-      timeout: 60s
+      timeout: 180s
