@@ -1,7 +1,7 @@
 # Phase 1.5C Build Report
 
-Status: IMPLEMENTED locally; deployment intentionally not performed
-Date: 2026-07-18
+Status: DEPLOYED for human review; Central registration intentionally not performed
+Date: 2026-07-19
 Branch: `phase/01.5c-judge-readiness`
 
 ## Working outcome
@@ -32,11 +32,23 @@ This follows the reviewed LLL Central behavior: Assorted Things is box history, 
 - Assorted Things routes remain outside the six anonymous Central-compatible reads.
 - Migration 002 preserves the single-file reference deployment while a media-storage port keeps S3 or filesystem replacement possible.
 
-## Release work deliberately deferred
+## Remaining release work
 
-- Route the existing Cloudflare tunnel to the approved local service.
-- Select and provision the production database/media mount and SQLite-safe backup destination.
-- Create a production operator token and map the uncommitted hackathon key to `OPENAI_API_KEY` in the process environment.
-- Observe the three themes and full capture/review flow in a real browser at the HTTPS hostname.
-- Run Central lookup, node click-through, CRUD, refresh, and rollback evidence.
-- Deployment, DNS mutation, Central registration, and public test credentials still require owner approval.
+- Complete the owner-led browser checklist across all three themes and write workflows.
+- Decide daily backup scheduling and retention after observing database/image growth.
+- Run Central registration, lookup, node click-through, CRUD, refresh, and rollback evidence.
+- Choose longer-term production identity or judge test credentials; the current local operator token is suitable for owner review only.
+
+## 2026-07-19 deployment evidence
+
+- Docker image `lll-happybox:phase-01.5c` built from a clean `npm ci` after pinning the validated npm 11.6.2 installer.
+- Container `lll-happybox` is healthy and binds only the host LAN address `192.168.0.141:13056`.
+- Canonical database: `/home/zaxaz/lll-happybox/data/lll-node.sqlite`.
+- Runtime configuration: `/home/zaxaz/lll-happybox/runtime.env`, mode `0600`.
+- First verified backup: `/home/zaxaz/lll-happybox/backups/lll-node-20260719T120601Z.sqlite`.
+- Cloudflare already routed the hostname to Istio; exact-host `happybox-route` now sends only Happy Box traffic through `happybox-docker` and its EndpointSlice.
+- Public HTTPS health, metadata, themed UI, Happy Box address, anonymous reads, and `401` management boundary passed.
+- Existing `beta.littlelinkedlibrarian.com` Central health remained `healthy` after routing.
+- Restart persistence passed with 2 boxes, 3 books, and 1 pending AI-assisted Assorted Things fixture.
+
+Human browser review remains the next checkpoint. See `node-project/deploy/HUMAN-TEST.md`.

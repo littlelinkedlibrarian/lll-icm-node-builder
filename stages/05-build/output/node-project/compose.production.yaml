@@ -1,0 +1,25 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: lll-happybox:phase-01.5c
+    container_name: lll-happybox
+    restart: unless-stopped
+    env_file:
+      - ${HAPPYBOX_ENV_FILE:-/home/zaxaz/lll-happybox/runtime.env}
+    ports:
+      - "${HAPPYBOX_BIND_ADDRESS:-192.168.0.141}:${HAPPYBOX_PORT:-13056}:3000"
+    volumes:
+      - ${HAPPYBOX_DATA_DIR:-/home/zaxaz/lll-happybox/data}:/app/data
+      - ${HAPPYBOX_BACKUP_DIR:-/home/zaxaz/lll-happybox/backups}:/app/backups
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL

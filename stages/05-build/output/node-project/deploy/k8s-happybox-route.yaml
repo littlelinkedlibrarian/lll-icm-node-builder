@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: happybox-docker
+  namespace: lll
+spec:
+  ports:
+    - name: http
+      port: 3000
+      protocol: TCP
+      targetPort: 13056
+---
+apiVersion: discovery.k8s.io/v1
+kind: EndpointSlice
+metadata:
+  name: happybox-docker
+  namespace: lll
+  labels:
+    kubernetes.io/service-name: happybox-docker
+addressType: IPv4
+ports:
+  - name: http
+    protocol: TCP
+    port: 13056
+endpoints:
+  - addresses:
+      - 192.168.0.141
+    conditions:
+      ready: true
+---
+apiVersion: networking.istio.io/v1
+kind: VirtualService
+metadata:
+  name: happybox-route
+  namespace: lll
+spec:
+  gateways:
+    - lll-gateway
+  hosts:
+    - happybox.littlelinkedlibrarian.com
+  http:
+    - route:
+        - destination:
+            host: happybox-docker.lll.svc.cluster.local
+            port:
+              number: 3000
+      timeout: 60s

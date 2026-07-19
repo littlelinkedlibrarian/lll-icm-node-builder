@@ -11,7 +11,8 @@
     "start": "tsx src/main.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "check": "npm run typecheck && npm test"
+    "check": "npm run typecheck && npm test",
+    "backup": "tsx src/backup.ts"
   },
   "dependencies": {
     "@modelcontextprotocol/ext-apps": "1.7.4",
