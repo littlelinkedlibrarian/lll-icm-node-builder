@@ -1,4 +1,4 @@
-import type { AssortedCapture, AssortedFields, Book, Box, CandidateFields, ScanCandidate } from "../domain/model.js";
+import type { AssortedCapture, AssortedFields, Book, BookMetadataProposal, Box, CandidateFields, ScanCandidate } from "../domain/model.js";
 
 export interface Page<T> { data: T[]; page: number; limit: number; total: number }
 export interface BoxRepository {
@@ -17,7 +17,7 @@ export interface BookRepository {
   keyword(query: string, boxId?: string): Book[];
 }
 export interface CandidateRepository {
-  createCandidate(boxId: string, fields: CandidateFields, provenance: Record<string, unknown>): ScanCandidate;
+  createCandidate(boxId: string, fields: CandidateFields, provenance: Record<string, unknown>, activityId?: string): ScanCandidate;
   getCandidate(id: string): ScanCandidate | undefined;
   updateFields(id: string, fields: CandidateFields): ScanCandidate | undefined;
   reject(id: string): ScanCandidate | undefined;
@@ -35,6 +35,14 @@ export interface AssortedCaptureRepository {
   updateAssorted(id: string, fields: AssortedFields): AssortedCapture | undefined;
   rejectAssorted(id: string): AssortedCapture | undefined;
   confirmAssorted(id: string, actor: string, idempotencyKey: string): AssortedCapture;
+}
+export interface MediaStore {
+  save(bytes: Uint8Array, mimeType: string): Promise<{ storageKey: string; sha256: string; byteSize: number }>;
+  read(storageKey: string): Promise<Uint8Array>;
+  delete(storageKey: string): Promise<void>;
+}
+export interface BibliographicProvider {
+  findEditions(fields: CandidateFields): Promise<Array<Omit<BookMetadataProposal, "id" | "candidateId" | "selected" | "createdAt">>>;
 }
 export interface Embedder {
   embed(text: string): Promise<number[]>;

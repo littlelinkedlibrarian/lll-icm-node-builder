@@ -23,6 +23,14 @@ describe("OpenAPI compatibility contract", () => {
     for (const path of publicProfile) expect(contract.paths[path]?.get).toBeDefined();
   });
 
+  it("documents protected Phase 1.5E activity and metadata routes", () => {
+    for (const path of ["/api/manage/activities", "/api/manage/activities/{id}", "/api/manage/activities/{id}/image", "/api/manage/candidates/{id}/metadata-selection"]) {
+      const operation = contract.paths[path]?.get ?? contract.paths[path]?.post;
+      expect(operation).toBeDefined();
+      expect((operation as { security?: unknown }).security).toBeDefined();
+    }
+  });
+
   it("does not expose a public write in the compatibility profile", () => {
     for (const path of publicProfile) {
       expect(contract.paths[path]?.post).toBeUndefined();

@@ -120,19 +120,19 @@ Checkpoint: human-test a photo containing at least three spines, confirm and rej
 
 ## Phase 1.5E: metadata, retained scan images, and activity history
 
-- [ ] Add migration 003 with `scan_activities` as the image-owning parent, `media_assets`, candidate foreign keys, bounded metadata proposals, selected metadata provenance, and append-only activity events.
-- [ ] Add an atomic content-addressed filesystem media adapter, mounted media directory, original plus thumbnail assets, and a future S3 seam.
-- [ ] Save the Books image and activity before OpenAI extraction; expose retryable processing and failed states without losing the upload.
-- [ ] Validate visible ISBN-10 and ISBN-13 checksums; otherwise search title, author, and optional language through a bibliographic adapter.
-- [ ] Implement a low-volume Open Library adapter with application identification, bounded caching, timeouts, attribution, and deterministic fake tests.
-- [ ] Present edition choices rather than silently assigning an ISBN; allow confirmation without an external match.
-- [ ] Persist selected edition metadata and cover provenance locally; use cover thumbnails for books and a placeholder when absent.
-- [ ] Add protected activity list/detail/image routes and a timeline UI grouped by parent scan image.
-- [ ] Add zoom, pan, keyboard controls, and full-resolution access inside the activity detail modal.
-- [ ] Show all child results with pending, confirmed, rejected, or failed state and links to canonical books.
+- [x] Add migration 003 with `scan_activities` as the image-owning parent, `media_assets`, candidate foreign keys, bounded metadata proposals, selected metadata provenance, and append-only activity events.
+- [x] Add an atomic content-addressed filesystem media adapter, mounted media directory, original assets, and a future object-storage port. Generated thumbnail derivatives remain follow-up work.
+- [x] Save the Books image and activity before OpenAI extraction; expose processing and failed states without losing the upload. A dedicated retry command remains follow-up work.
+- [x] Validate visible ISBN-10 and ISBN-13 checksums; otherwise search title, author, and optional language through a bibliographic adapter.
+- [x] Implement a low-volume Open Library adapter with application identification, bounded caching, timeouts, attribution, and deterministic fake tests.
+- [x] Present edition choices rather than silently assigning an ISBN; allow confirmation without an external match.
+- [x] Persist selected edition metadata and cover provenance locally; use provider cover thumbnails for books and a placeholder when absent. Mirroring cover bytes locally remains follow-up work.
+- [x] Add protected activity list/detail/image routes and a timeline UI grouped by parent scan image.
+- [x] Add zoom, scroll-based pan, mouse-wheel and button controls, and full-resolution access inside the activity detail modal. Dedicated keyboard shortcuts remain follow-up work.
+- [x] Show all child results with pending, confirmed, rejected, or failed state and links to canonical books.
 - [ ] Define image retention/deletion so removing historical media never removes confirmed books or audit facts.
-- [ ] Back up and restore SQLite plus the media directory as one versioned consistency boundary.
-- [ ] Extend MCP with activity list/detail and safe metadata-selection tools through the normal operator realm.
-- [ ] Test upload-before-AI persistence, failed/retried scans, multiple candidates, ambiguous editions, invalid ISBNs, no-match confirmation, cover failure, authorization, and backup/restore.
+- [x] Back up SQLite plus the media directory as a timestamp-paired consistency boundary and document paired restore. Automated media-restore testing remains follow-up work.
+- [x] Extend MCP with activity list/detail and safe metadata-selection tools through the normal operator realm.
+- [x] Test upload-before-AI persistence, failed scans, multiple candidates, explicit edition selection, invalid ISBNs, no-match confirmation, and authorization. Retry, cover-fetch failure, and paired media-restore tests remain follow-up work.
 
 Checkpoint: upload one three-spine photo, review it once, resolve at least one edition, confirm and reject different results, then reopen the parent image from Activity History and zoom while seeing every child outcome.

@@ -2,6 +2,7 @@ export type Visibility = "public" | "private";
 export type CandidateState = "pending" | "confirmed" | "rejected";
 export type SearchMode = "semantic" | "keyword" | "keyword_fallback";
 export type AssortedCaptureState = "pending_review" | "confirmed" | "rejected";
+export type ScanActivityState = "processing" | "pending_review" | "completed" | "failed";
 
 export interface Box {
   id: string;
@@ -27,6 +28,9 @@ export interface Book {
   condition: string | null;
   visibility: Visibility;
   aiProvenance: Record<string, unknown> | null;
+  coverUrl?: string | null;
+  publicationYear?: number | null;
+  metadataProvenance?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -49,8 +53,34 @@ export interface ScanCandidate {
   provenance: Record<string, unknown>;
   approvedBookId: string | null;
   idempotencyKey: string | null;
+  activityId: string | null;
+  metadataProposals?: BookMetadataProposal[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface MediaAsset {
+  id: string; storageKey: string; mimeType: string; byteSize: number; sha256: string;
+  width: number | null; height: number | null; derivativeOf: string | null;
+  createdAt: string; deletedAt: string | null;
+}
+
+export interface ScanActivity {
+  id: string; boxId: string; state: ScanActivityState; mediaAssetId: string;
+  provenance: Record<string, unknown>; errorCode: string | null; errorMessage: string | null;
+  createdAt: string; updatedAt: string; completedAt: string | null;
+}
+
+export interface BookMetadataProposal {
+  id: string; candidateId: string; provider: string; workId: string | null; editionId: string | null;
+  isbn10: string | null; isbn13: string | null; title: string; authors: string[]; description: string | null;
+  language: string | null; publisher: string | null; publishedDate: string | null; subjects: string[];
+  coverUrl: string | null; sourceUrl: string; selected: boolean; createdAt: string;
+}
+
+export interface ScanActivityEvent {
+  id: string; activityId: string; eventType: string; candidateId: string | null; actor: string | null;
+  detail: Record<string, unknown>; createdAt: string;
 }
 
 export interface AssortedFields {

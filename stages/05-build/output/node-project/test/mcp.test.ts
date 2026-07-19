@@ -23,7 +23,7 @@ describe("MCP Apps adapter", () => {
     const store = new SqliteStore(db); const { server, client } = await connected(store);
     const tools = await client.listTools();
     expect(tools.tools.map(tool => tool.name)).toEqual([
-      "list_my_boxes", "show_box_map", "search_catalog", "get_book", "analyze_book_photo", "prepare_book_add", "add_book_to_box"
+      "list_my_boxes", "show_box_map", "search_catalog", "get_book", "list_scan_activities", "get_scan_activity", "select_book_edition", "analyze_book_photo", "prepare_book_add", "add_book_to_box"
     ]);
     for (const tool of tools.tools) {
       expect(tool.annotations?.readOnlyHint).toBeTypeOf("boolean");

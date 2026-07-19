@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { AssortedFields, Book, Box, CandidateFields, SearchMode } from "../domain/model.js";
-import type { Embedder, VectorIndex, VisionExtractor } from "../ports/index.js";
+import type { BibliographicProvider, Embedder, MediaStore, VectorIndex, VisionExtractor } from "../ports/index.js";
+import { validatedIsbn } from "./isbn.js";
 import { SqliteStore } from "../db/store.js";
 
 export class DomainError extends Error {
@@ -44,27 +45,39 @@ export function candidateFields(value: unknown, requireIdentity = false): Candid
 }
 
 export class CandidateService {
-  constructor(private readonly store: SqliteStore, private readonly vision?: VisionExtractor) {}
+  constructor(private readonly store: SqliteStore, private readonly vision: VisionExtractor | undefined, private readonly media: MediaStore, private readonly bibliography?: BibliographicProvider) {}
   async analyze(boxId: string, mimeType: string, bytes: Uint8Array) {
     if (!this.store.getBox(boxId)) throw new DomainError("box_not_found", 404, "Destination box does not exist");
     if (!["image/jpeg", "image/png", "image/webp"].includes(mimeType)) throw new DomainError("unsupported_image", 400, "Use JPEG, PNG, or WebP");
     if (!bytes.length || bytes.length > 10 * 1024 * 1024) throw new DomainError("invalid_image_size", 400, "Image must be 1 byte through 10 MiB");
-    if (!this.vision) throw new DomainError("openai_unavailable", 503, "Vision extraction is not configured");
+    const stored = await this.media.save(bytes, mimeType);
+    const asset = this.store.createMediaAsset({ ...stored, mimeType });
+    const activity = this.store.createActivity(boxId, asset.id);
+    this.store.addActivityEvent(activity.id, "extraction.started", null, null, {});
     try {
+      if (!this.vision) throw new DomainError("openai_unavailable", 503, "Vision extraction is not configured; the saved activity can be retried later");
       const extracted = await this.vision.extract({ mimeType, bytes });
-      if (!Array.isArray(extracted.candidates) || !extracted.candidates.length || extracted.candidates.length > 15) {
-        throw new DomainError("invalid_model_output", 502, "Model output must contain 1 through 15 book candidates");
+      if (!Array.isArray(extracted.candidates) || !extracted.candidates.length || extracted.candidates.length > 15) throw new DomainError("invalid_model_output", 502, "Model output must contain 1 through 15 book candidates");
+      const reviewedFields = extracted.candidates.map(value => { const fields = candidateFields(value); return { ...fields, isbn: validatedIsbn(fields.isbn) }; });
+      const created = reviewedFields.map((fields, position) => this.store.createCandidate(boxId, fields, { ...extracted.provenance, batchId: activity.id, position, candidateCount: reviewedFields.length }, activity.id));
+      for (const candidate of created.slice(0, 5)) {
+        if (!this.bibliography || !candidate.fields.title.trim() || !candidate.fields.author.trim()) continue;
+        try {
+          const proposals = await this.bibliography.findEditions(candidate.fields);
+          this.store.addMetadataProposals(candidate.id, proposals);
+          this.store.addActivityEvent(activity.id, "metadata.proposed", candidate.id, null, { count: proposals.length, provider: "openlibrary" });
+        } catch { this.store.addActivityEvent(activity.id, "metadata.unavailable", candidate.id, null, { provider: "openlibrary" }); }
       }
-      const reviewedFields = extracted.candidates.map(fields => candidateFields(fields));
-      const batchId = randomUUID();
-      const created = reviewedFields.map((fields, position) => this.store.createCandidate(
-        boxId, fields,
-        { ...extracted.provenance, batchId, position, candidateCount: extracted.candidates.length }
-      ));
-      return { id: batchId, boxId, state: "pending_review", candidates: created, createdAt: new Date().toISOString() };
+      this.store.updateActivity(activity.id, "pending_review", { provenance: extracted.provenance });
+      this.store.addActivityEvent(activity.id, "extraction.succeeded", null, null, { candidateCount: created.length });
+      return { ...this.store.getActivity(activity.id)!, imageUrl: "/api/manage/activities/" + activity.id + "/image", candidates: this.store.listActivityCandidates(activity.id) };
     } catch (error) {
+      const code = error instanceof DomainError ? error.code : "openai_unavailable";
+      const message = error instanceof Error ? error.message : "Vision extraction failed";
+      this.store.updateActivity(activity.id, "failed", { errorCode: code, errorMessage: message });
+      this.store.addActivityEvent(activity.id, "extraction.failed", null, null, { code });
       if (error instanceof DomainError) throw error;
-      throw new DomainError("openai_unavailable", 503, "Vision extraction is temporarily unavailable");
+      throw new DomainError("openai_unavailable", 503, "Vision extraction failed; the saved activity can be retried later");
     }
   }
 }

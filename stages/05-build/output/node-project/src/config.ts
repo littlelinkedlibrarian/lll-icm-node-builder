@@ -9,6 +9,9 @@ export interface AppConfig {
   visionModel: string;
   embeddingModel: string;
   discoveryEnabled: boolean;
+  mediaDirectory?: string;
+  bibliographicEnabled?: boolean;
+  bibliographicContact?: string;
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
@@ -24,6 +27,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     ...(env.OPENAI_API_KEY ? { openaiApiKey: env.OPENAI_API_KEY } : {}),
     visionModel: env.OPENAI_VISION_MODEL ?? "gpt-5.6-sol",
     embeddingModel: env.OPENAI_EMBEDDING_MODEL ?? "text-embedding-3-small",
-    discoveryEnabled: env.DISCOVERY_ENABLED === "true"
+    discoveryEnabled: env.DISCOVERY_ENABLED === "true",
+    mediaDirectory: env.MEDIA_DIRECTORY ?? "./data/media",
+    bibliographicEnabled: env.BIBLIOGRAPHIC_ENABLED !== "false",
+    ...(env.BIBLIOGRAPHIC_CONTACT ? { bibliographicContact: env.BIBLIOGRAPHIC_CONTACT } : {})
   };
 }

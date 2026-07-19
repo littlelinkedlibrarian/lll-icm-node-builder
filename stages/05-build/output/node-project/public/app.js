@@ -1,4 +1,4 @@
-const state = { boxes: [], books: [], captures: [], captureImages: new Map(), activeBoxId: null, inventoryThings: [], candidateQueue: [], scanKind: "books", token: localStorage.getItem("lll.operatorToken") ?? "", candidate: null, theme: localStorage.getItem("lll.theme") ?? "garden" };
+const state = { boxes: [], books: [], captures: [], activities: [], captureImages: new Map(), activityImages: new Map(), activityZoom: 1, activeBoxId: null, inventoryThings: [], candidateQueue: [], scanKind: "books", token: localStorage.getItem("lll.operatorToken") ?? "", candidate: null, theme: localStorage.getItem("lll.theme") ?? "garden" };
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const empty = () => $("#empty-template").content.cloneNode(true);
@@ -50,14 +50,15 @@ async function load() {
 async function loadManaged() {
   if (!state.token) return load();
   try {
-    const [boxes, books, captures] = await Promise.all([api("/api/manage/boxes?limit=50"), api("/api/manage/books?limit=50"), api("/api/manage/assorted")]);
-    state.boxes = boxes.data; state.books = books.data; state.captures = captures.data; $("#box-count").textContent = boxes.pagination.total; $("#book-count").textContent = books.pagination.total; renderBoxes(); renderBooks(state.books); populateBoxes(); updateAccess();
+    const [boxes, books, captures, activities] = await Promise.all([api("/api/manage/boxes?limit=50"), api("/api/manage/books?limit=50"), api("/api/manage/assorted"), api("/api/manage/activities?limit=50")]);
+    state.boxes = boxes.data; state.books = books.data; state.captures = captures.data; state.activities = activities.data; $("#box-count").textContent = boxes.pagination.total; $("#book-count").textContent = books.pagination.total; renderBoxes(); renderBooks(state.books); populateBoxes(); renderActivities(); updateAccess();
   } catch (error) { state.token = ""; localStorage.removeItem("lll.operatorToken"); updateAccess(); throw error; }
 }
 
 function updateAccess() {
   $("#operator-button").textContent = state.token ? "Operator connected" : "Operator access";
   $("#operator-button").classList.toggle("button-primary", Boolean(state.token));
+  $("#activity-history").classList.toggle("hidden", !state.token);
 }
 
 function boxCard(box) {
@@ -85,10 +86,56 @@ function renderBooks(books, mode) {
   books.forEach(book => {
     const boxId = book.boxId ?? book.libraryBoxId; const box = state.boxes.find(item => item.id === boxId);
     const article = document.createElement("article"); article.className = "book-card";
-    article.innerHTML = `<div class="book-spine"></div><div><h3>${escapeHtml(book.title)}</h3><p>${escapeHtml(book.author)} · ${escapeHtml(box?.name ?? "Unboxed")}${book.genre ? ` · ${escapeHtml(book.genre)}` : ""}</p></div>${state.token ? `<div class="book-actions"><button class="icon-button" data-edit-book="${book.id}" aria-label="Edit ${escapeHtml(book.title)}">✎</button><button class="icon-button" data-delete-book="${book.id}" aria-label="Delete ${escapeHtml(book.title)}">×</button></div>` : ""}`;
+    const visual = book.coverUrl ? `<img class="book-cover" src="${escapeHtml(book.coverUrl)}" alt="Cover of ${escapeHtml(book.title)}" loading="lazy">` : `<div class="book-spine" aria-hidden="true"></div>`;
+    article.innerHTML = `${visual}<div><h3>${escapeHtml(book.title)}</h3><p>${escapeHtml(book.author)} · ${escapeHtml(box?.name ?? "Unboxed")}${book.genre ? ` · ${escapeHtml(book.genre)}` : ""}</p></div>${state.token ? `<div class="book-actions"><button class="icon-button" data-edit-book="${book.id}" aria-label="Edit ${escapeHtml(book.title)}">✎</button><button class="icon-button" data-delete-book="${book.id}" aria-label="Delete ${escapeHtml(book.title)}">×</button></div>` : ""}`;
     list.append(article);
   });
   if (mode) $("#search-note").textContent = mode === "semantic" ? "Multilingual semantic results from OpenAI embeddings stored in local sqlite-vec." : mode === "keyword_fallback" ? "OpenAI or vectors were unavailable, so the node returned keyword results." : "Keyword results from the local catalog.";
+}
+
+async function activityImageUrl(id) {
+  if (state.activityImages.has(id)) return state.activityImages.get(id);
+  const response = await fetch("/api/manage/activities/" + id + "/image", { headers: { authorization: "Bearer " + state.token } });
+  if (!response.ok) return "";
+  const url = URL.createObjectURL(await response.blob()); state.activityImages.set(id, url); return url;
+}
+
+async function renderActivities() {
+  const grid = $("#activity-grid"); grid.replaceChildren();
+  $("#activity-count").textContent = state.activities.length + " scan" + (state.activities.length === 1 ? "" : "s");
+  if (!state.activities.length) { grid.append(empty()); return; }
+  for (const activity of state.activities) {
+    const box = state.boxes.find(item => item.id === activity.boxId), candidates = activity.candidates || [];
+    const article = document.createElement("article"); article.className = "activity-card";
+    const imageUrl = await activityImageUrl(activity.id);
+    article.innerHTML = `<button class="activity-image-button" data-open-activity="${activity.id}" type="button"><img src="${escapeHtml(imageUrl)}" alt="Shelf scan from ${escapeHtml(box?.name || "library box")}" loading="lazy"></button><div class="activity-card-body"><span class="state-chip state-${activity.state}">${activity.state.replaceAll("_", " ")}</span><h3>${escapeHtml(box?.name || "Library scan")}</h3><p>${new Date(activity.createdAt).toLocaleString()} · ${candidates.length} result${candidates.length === 1 ? "" : "s"}</p><button class="button button-quiet" data-open-activity="${activity.id}" type="button">Open activity</button></div>`;
+    grid.append(article);
+  }
+}
+
+function setActivityZoom(next) {
+  state.activityZoom = Math.min(4, Math.max(.5, next));
+  $("#activity-image").style.transform = `scale(${state.activityZoom})`;
+  $("[data-activity-zoom=reset]").textContent = Math.round(state.activityZoom * 100) + "%";
+}
+
+async function openActivity(id) {
+  const activity = await api("/api/manage/activities/" + id), box = state.boxes.find(item => item.id === activity.boxId);
+  $("#activity-title").textContent = box?.name || "Scan activity";
+  $("#activity-meta").textContent = new Date(activity.createdAt).toLocaleString() + " · " + (activity.media ? Math.round(activity.media.byteSize / 1024) + " KiB" : "image unavailable");
+  $("#activity-state").className = "state-chip state-" + activity.state; $("#activity-state").textContent = activity.state.replaceAll("_", " ");
+  $("#activity-image").src = await activityImageUrl(id); setActivityZoom(1);
+  const results = $("#activity-results"); results.replaceChildren();
+  (activity.candidates || []).forEach((candidate, index) => {
+    const proposal = candidate.metadataProposals?.find(item => item.selected) || candidate.metadataProposals?.[0];
+    const row = document.createElement("article"); row.className = "activity-result";
+    const cover = proposal?.coverUrl ? `<img src="${escapeHtml(proposal.coverUrl)}" alt="Possible cover for ${escapeHtml(candidate.fields.title)}" loading="lazy">` : `<span class="result-number">${index + 1}</span>`;
+    row.innerHTML = `${cover}<div><strong>${escapeHtml(candidate.fields.title || "Unreadable title")}</strong><small>${escapeHtml(candidate.fields.author || "Unreadable author")}</small><small>${proposal ? escapeHtml([proposal.isbn13 || proposal.isbn10, proposal.publisher, proposal.publishedDate].filter(Boolean).join(" · ")) : "No edition selected"}</small></div><span class="state-chip state-${candidate.state}">${candidate.state}</span>${candidate.approvedBookId ? `<small>Book ${escapeHtml(candidate.approvedBookId.slice(0, 8))}</small>` : ""}`;
+    results.append(row);
+  });
+  const events = $("#activity-events"); events.replaceChildren();
+  (activity.events || []).forEach(item => { const row = document.createElement("li"); row.textContent = new Date(item.createdAt).toLocaleTimeString() + " — " + item.eventType.replaceAll(".", " "); events.append(row); });
+  openDialog("activity-dialog");
 }
 
 async function captureImageUrl(id) {
@@ -120,7 +167,7 @@ async function openBoxInventory(id) {
   $("#inventory-thing-count").textContent = String(state.inventoryThings.length);
   const bookList = $("#inventory-books"); bookList.replaceChildren();
   if (!books.length) bookList.append(empty());
-  books.forEach(book => { const article = document.createElement("article"); article.className = "book-card"; article.innerHTML = "<div class=\"book-spine\"></div><div><h3>" + escapeHtml(book.title) + "</h3><p>" + escapeHtml(book.author) + (book.genre ? " · " + escapeHtml(book.genre) : "") + "</p></div>"; bookList.append(article); });
+  books.forEach(book => { const article = document.createElement("article"); article.className = "book-card"; const visual = book.coverUrl ? "<img class=\"book-cover\" src=\"" + escapeHtml(book.coverUrl) + "\" alt=\"Cover of " + escapeHtml(book.title) + "\" loading=\"lazy\">" : "<div class=\"book-spine\" aria-hidden=\"true\"></div>"; article.innerHTML = visual + "<div><h3>" + escapeHtml(book.title) + "</h3><p>" + escapeHtml(book.author) + (book.genre ? " · " + escapeHtml(book.genre) : "") + "</p></div>"; bookList.append(article); });
   const thingGrid = $("#inventory-things"); thingGrid.replaceChildren();
   if (!state.inventoryThings.length) thingGrid.append(empty());
   for (const item of state.inventoryThings) {
@@ -178,6 +225,8 @@ $("#book-form").addEventListener("submit", async event => {
 document.addEventListener("click", async event => {
   const target = event.target.closest("button"); if (!target) return;
   if (target.dataset.openBox) await openBoxInventory(target.dataset.openBox);
+  if (target.dataset.openActivity) await openActivity(target.dataset.openActivity);
+  if (target.dataset.activityZoom) setActivityZoom(target.dataset.activityZoom === "in" ? state.activityZoom + .25 : target.dataset.activityZoom === "out" ? state.activityZoom - .25 : 1);
   if (target.dataset.viewThing) openThing(target.dataset.viewThing);
   if (target.dataset.reviewAssorted) { $("#box-inventory-dialog").close(); await openAssortedReview(target.dataset.reviewAssorted); }
   if (target.dataset.editCandidate) openCandidateEdit(target.dataset.editCandidate);
@@ -221,9 +270,9 @@ $("#scan-form").addEventListener("submit", async event => {
     try {
       const imageBase64 = await fileBase64(file);
       const batch = await api("/api/manage/candidates/analyze", { method: "POST", body: { boxId: $("#scan-box").value, mimeType: file.type, imageBase64 } });
-      state.candidateQueue = [...batch.candidates]; status.textContent = batch.candidates.length + " book candidate" + (batch.candidates.length === 1 ? "" : "s") + " found — review them together before publishing.";
+      state.candidateQueue = [...batch.candidates]; state.activities = [batch, ...state.activities.filter(item => item.id !== batch.id)]; renderActivities(); status.textContent = batch.candidates.length + " book candidate" + (batch.candidates.length === 1 ? "" : "s") + " found — review them together before publishing.";
       renderCandidateBatch(); openDialog("candidate-batch-dialog");
-    } catch (error) { status.textContent = error.message; }
+    } catch (error) { status.textContent = error.message; await loadManaged().catch(() => {}); }
   });
 });
 
@@ -231,13 +280,19 @@ function completeCandidate(candidate) { return Boolean(candidate.fields.title?.t
 
 function renderCandidateBatch() {
   const list = $("#candidate-batch-list"); list.replaceChildren();
-  state.candidateQueue.forEach((candidate, index) => {
+  state.candidateQueue.forEach(candidate => {
     const complete = completeCandidate(candidate); if (candidate._selected === undefined) candidate._selected = complete;
+    const proposals = candidate.metadataProposals || [], chosen = proposals.find(item => item.selected);
+    if (candidate._metadataProposalId === undefined) candidate._metadataProposalId = chosen?.id || null;
+    const preview = proposals.find(item => item.id === candidate._metadataProposalId) || proposals[0];
+    const options = `<option value="">Keep reviewed fields; no edition</option>` + proposals.map(item => `<option value="${item.id}"${item.id === candidate._metadataProposalId ? " selected" : ""}>${escapeHtml([item.title, item.publisher, item.publishedDate, item.isbn13 || item.isbn10].filter(Boolean).join(" · "))}</option>`).join("");
     const row = document.createElement("article"); row.className = "candidate-batch-row" + (complete ? "" : " needs-review");
-    row.innerHTML = "<label class=\"candidate-select\"><input type=\"checkbox\" data-batch-candidate=\"" + candidate.id + "\"" + (candidate._selected ? " checked" : "") + "><span><strong>" + escapeHtml(candidate.fields.title || "Title needed") + "</strong><small>" + escapeHtml(candidate.fields.author || "Author needed") + (candidate.fields.genre ? " · " + escapeHtml(candidate.fields.genre) : "") + "</small></span></label><span class=\"candidate-state\">" + (complete ? "Ready" : "Needs edit") + "</span><button class=\"button button-quiet\" data-edit-candidate=\"" + candidate.id + "\" type=\"button\">Edit</button>";
+    const cover = preview?.coverUrl ? `<img class="candidate-cover" src="${escapeHtml(preview.coverUrl)}" alt="Possible edition cover" loading="lazy">` : `<span class="candidate-placeholder">▤</span>`;
+    row.innerHTML = `${cover}<label class="candidate-select"><input type="checkbox" data-batch-candidate="${candidate.id}"${candidate._selected ? " checked" : ""}><span><strong>${escapeHtml(candidate.fields.title || "Title needed")}</strong><small>${escapeHtml(candidate.fields.author || "Author needed")}${candidate.fields.genre ? " · " + escapeHtml(candidate.fields.genre) : ""}</small><small>${candidate.fields.isbn ? "Visible ISBN " + escapeHtml(candidate.fields.isbn) : "ISBN will only come from a selected edition"}</small></span></label><label class="metadata-choice">Edition metadata<select data-metadata-candidate="${candidate.id}">${options}</select></label><span class="candidate-state">${complete ? "Ready" : "Needs edit"}</span><button class="button button-quiet" data-edit-candidate="${candidate.id}" type="button">Edit</button>`;
     list.append(row);
   });
   list.querySelectorAll("[data-batch-candidate]").forEach(input => input.addEventListener("change", () => { const candidate = state.candidateQueue.find(item => item.id === input.dataset.batchCandidate); if (candidate) candidate._selected = input.checked; }));
+  list.querySelectorAll("[data-metadata-candidate]").forEach(select => select.addEventListener("change", () => { const candidate = state.candidateQueue.find(item => item.id === select.dataset.metadataCandidate); if (candidate) { candidate._metadataProposalId = select.value || null; renderCandidateBatch(); } }));
 }
 
 function openCandidateEdit(id) {
@@ -250,7 +305,7 @@ function openCandidateEdit(id) {
 function fillCandidate(candidate) { const form = $("#candidate-form"); form.reset(); form.candidateId.value = candidate.id; form.boxId.value = candidate.boxId; Object.entries(candidate.fields).forEach(([key,value]) => { if (form[key]) form[key].value = value ?? ""; }); }
 function candidatePayload(form) { return { title: form.title.value.trim(), author: form.author.value.trim(), isbn: optional(form.isbn.value), genre: optional(form.genre.value), description: optional(form.description.value), language: optional(form.language.value), condition: optional(form.condition.value) }; }
 
-$("#candidate-form").addEventListener("submit", async event => { event.preventDefault(); const form = event.currentTarget; try { const updated = await api("/api/manage/candidates/" + form.candidateId.value, { method: "PATCH", body: candidatePayload(form) }); updated._selected = true; const index = state.candidateQueue.findIndex(item => item.id === updated.id); if (index >= 0) state.candidateQueue[index] = updated; form.closest("dialog").close(); renderCandidateBatch(); openDialog("candidate-batch-dialog"); toast("Candidate updated"); } catch (error) { $(".form-status", form).textContent = error.message; } });
+$("#candidate-form").addEventListener("submit", async event => { event.preventDefault(); const form = event.currentTarget; try { const prior = state.candidateQueue.find(item => item.id === form.candidateId.value); const updated = await api("/api/manage/candidates/" + form.candidateId.value, { method: "PATCH", body: candidatePayload(form) }); updated._selected = true; updated._metadataProposalId = prior?._metadataProposalId ?? null; const index = state.candidateQueue.findIndex(item => item.id === updated.id); if (index >= 0) state.candidateQueue[index] = updated; form.closest("dialog").close(); renderCandidateBatch(); openDialog("candidate-batch-dialog"); toast("Candidate updated"); } catch (error) { $(".form-status", form).textContent = error.message; } });
 
 $("#candidate-batch-form").addEventListener("submit", async event => {
   event.preventDefault(); const form = event.currentTarget; const selected = state.candidateQueue.filter(candidate => candidate._selected);
@@ -258,7 +313,10 @@ $("#candidate-batch-form").addEventListener("submit", async event => {
   if (selected.some(candidate => !completeCandidate(candidate))) { $(".form-status", form).textContent = "Edit selected candidates that still need a title or author."; return; }
   try {
     for (const candidate of state.candidateQueue) {
-      if (candidate._selected) await api("/api/manage/candidates/" + candidate.id + "/confirm", { method: "POST", body: { actor: "browser-operator", idempotencyKey: crypto.randomUUID() } });
+      if (candidate._selected) {
+        if (candidate.metadataProposals?.length) await api("/api/manage/candidates/" + candidate.id + "/metadata-selection", { method: "POST", body: { proposalId: candidate._metadataProposalId ?? null } });
+        await api("/api/manage/candidates/" + candidate.id + "/confirm", { method: "POST", body: { actor: "browser-operator", idempotencyKey: crypto.randomUUID() } });
+      }
       else await api("/api/manage/candidates/" + candidate.id + "/reject", { method: "POST", body: {} });
     }
     state.candidateQueue = []; form.closest("dialog").close(); await loadManaged(); toast(selected.length + " reviewed book" + (selected.length === 1 ? "" : "s") + " added");
@@ -294,6 +352,8 @@ document.querySelector("#reject-assorted").addEventListener("click", async () =>
   try { await api("/api/manage/assorted/" + form.captureId.value + "/reject", { method: "POST", body: {} }); form.closest("dialog").close(); await loadManaged(); toast("Assorted capture rejected; the history remains intact"); }
   catch (error) { form.querySelector(".form-status").textContent = error.message; }
 });
+
+$("#activity-viewer").addEventListener("wheel", event => { event.preventDefault(); setActivityZoom(state.activityZoom + (event.deltaY < 0 ? .2 : -.2)); }, { passive: false });
 
 function fileBase64(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(",")[1]); reader.onerror = reject; reader.readAsDataURL(file); }); }
 function escapeHtml(value) { return String(value ?? "").replace(/[&<>'"]/g, character => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" })[character]); }

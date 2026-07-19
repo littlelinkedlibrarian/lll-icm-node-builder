@@ -1,3 +1,4 @@
+import { MemoryMediaStore } from "../adapters/media.js";
 import { readFileSync } from "node:fs";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -7,7 +8,7 @@ import { z } from "zod";
 import { CandidateService, SearchService, candidateFields } from "../application/services.js";
 import type { Book, CandidateFields } from "../domain/model.js";
 import { SqliteStore } from "../db/store.js";
-import type { Embedder, VisionExtractor } from "../ports/index.js";
+import type { BibliographicProvider, Embedder, MediaStore, VisionExtractor } from "../ports/index.js";
 
 const TEMPLATE_URI = "ui://little-green-library/catalog-v1.html";
 const annotations = {
@@ -24,6 +25,8 @@ export interface McpDependencies {
   store: SqliteStore;
   vision?: VisionExtractor;
   embedder?: Embedder;
+  media?: MediaStore;
+  bibliography?: BibliographicProvider;
   publicBaseUrl: URL;
 }
 
@@ -47,7 +50,7 @@ export function createMcpServer(deps: McpDependencies): McpServer {
   const server = new McpServer({ name: "little-green-library", version: "0.1.0" }, {
     instructions: "Read before writing. A photo creates one or more pending candidates only. Review each candidate independently. Call prepare_book_add with reviewed fields, then call add_book_to_box only after the user explicitly confirms the candidate and destination box in the current turn. Reuse idempotency keys on retries."
   });
-  const candidates = new CandidateService(deps.store, deps.vision);
+  const candidates = new CandidateService(deps.store, deps.vision, deps.media || new MemoryMediaStore(), deps.bibliography);
   const search = new SearchService(deps.store, deps.store, deps.embedder);
   const widget = readFileSync(new URL("../../public/chatgpt-widget.html", import.meta.url), "utf8");
 
@@ -87,6 +90,32 @@ export function createMcpServer(deps: McpDependencies): McpServer {
   }, async ({ bookId }) => {
     const book = deps.store.getBook(bookId); if (!book) throw new Error("Book not found");
     return { structuredContent: { book: conciseBook(book, deps.store) }, content: [{ type: "text", text: `${book.title} by ${book.author}.` }] };
+  });
+
+  server.registerTool("list_scan_activities", {
+    title: "List private scan activity", description: "Use this when the operator wants to revisit uploaded shelf photos and their result states.",
+    inputSchema: { boxId: z.string().optional(), limit: z.number().int().min(1).max(50).optional() }, outputSchema: { activities: z.array(z.any()) }, annotations: annotations.read
+  }, async ({ boxId, limit }) => {
+    const activities = deps.store.listActivities(boxId, limit ?? 20).map(activity => ({ ...activity, candidateCount: deps.store.listActivityCandidates(activity.id).length, imageUrl: new URL("/api/manage/activities/" + activity.id + "/image", deps.publicBaseUrl).href }));
+    return { structuredContent: { activities }, content: [{ type: "text", text: `Found ${activities.length} private scan activities.` }] };
+  });
+
+  server.registerTool("get_scan_activity", {
+    title: "Get scan activity details", description: "Returns one private parent scan with every candidate, metadata proposal, and processing event.",
+    inputSchema: { activityId: z.string() }, outputSchema: { activity: z.any(), candidates: z.array(z.any()), events: z.array(z.any()), imageUrl: z.string() }, annotations: annotations.read
+  }, async ({ activityId }) => {
+    const activity = deps.store.getActivity(activityId); if (!activity) throw new Error("Scan activity not found");
+    const candidates = deps.store.listActivityCandidates(activityId), events = deps.store.listActivityEvents(activityId), imageUrl = new URL("/api/manage/activities/" + activityId + "/image", deps.publicBaseUrl).href;
+    return { structuredContent: { activity, candidates, events, imageUrl }, content: [{ type: "text", text: `This image produced ${candidates.length} results; ${candidates.filter(item => item.state === "confirmed").length} are confirmed.` }] };
+  });
+
+  server.registerTool("select_book_edition", {
+    title: "Select edition metadata", description: "Select one bibliographic proposal, or clear it, before final book confirmation. This never creates a book.",
+    inputSchema: { candidateId: z.string(), proposalId: z.string().nullable() }, outputSchema: { candidate: z.any(), selected: z.any().nullable() }, annotations: annotations.write
+  }, async ({ candidateId, proposalId }) => {
+    if (!deps.store.getCandidate(candidateId)) throw new Error("Candidate not found");
+    const selected = deps.store.selectMetadataProposal(candidateId, proposalId);
+    return { structuredContent: { candidate: deps.store.getCandidate(candidateId), selected }, content: [{ type: "text", text: selected ? `Selected edition metadata from ${selected.provider}. Ask for final confirmation before adding the book.` : "Cleared the edition selection. The book can still be confirmed without an ISBN." }] };
   });
 
   server.registerTool("analyze_book_photo", {

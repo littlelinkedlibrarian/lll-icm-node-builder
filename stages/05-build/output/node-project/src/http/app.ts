@@ -1,3 +1,4 @@
+import { MemoryMediaStore } from "../adapters/media.js";
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import { readFileSync } from "node:fs";
 import type { DatabaseSync } from "node:sqlite";
@@ -7,7 +8,7 @@ import { AssortedCaptureService, CandidateService, DomainError, SearchService, a
 import { readiness } from "../db/database.js";
 import { SqliteStore } from "../db/store.js";
 import { handleMcpRequest } from "../mcp/server.js";
-import type { Embedder, VisionExtractor } from "../ports/index.js";
+import type { BibliographicProvider, Embedder, MediaStore, VisionExtractor } from "../ports/index.js";
 
 type Id = { id: string };
 type Paging = { page?: string; limit?: string };
@@ -22,12 +23,12 @@ const compatibleBook = (book: Book) => ({
   title: book.title,
   author: book.author,
   isbn: book.isbn,
-  coverUrl: null,
+  coverUrl: book.coverUrl ?? null,
   genre: book.genre,
   condition: book.condition ?? "good",
   description: book.description,
   summary: null,
-  publicationYear: null,
+  publicationYear: book.publicationYear ?? null,
   pageCount: null,
   language: book.language,
   aiExtracted: book.aiProvenance !== null,
@@ -36,9 +37,10 @@ const compatibleBook = (book: Book) => ({
   updatedAt: book.updatedAt
 });
 
-export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: SqliteStore; vision?: VisionExtractor; embedder?: Embedder }) {
+export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: SqliteStore; vision?: VisionExtractor; embedder?: Embedder; media?: MediaStore; bibliography?: BibliographicProvider }) {
   const app = Fastify({ logger: false });
-  const candidates = new CandidateService(input.store, input.vision);
+  const media = input.media ?? new MemoryMediaStore();
+  const candidates = new CandidateService(input.store, input.vision, media, input.bibliography);
   const assorted = new AssortedCaptureService(input.store);
   const search = new SearchService(input.store, input.store, input.embedder);
   const auth = async (request: FastifyRequest, reply: FastifyReply) => {
@@ -70,7 +72,8 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
     reply.hijack();
     reply.raw.setHeader("Access-Control-Allow-Origin", "*");
     await handleMcpRequest(request.raw, reply.raw, request.body, {
-      store: input.store, publicBaseUrl: input.config.publicBaseUrl,
+      store: input.store, publicBaseUrl: input.config.publicBaseUrl, media,
+      ...(input.bibliography ? { bibliography: input.bibliography } : {}),
       ...(input.vision ? { vision: input.vision } : {}), ...(input.embedder ? { embedder: input.embedder } : {})
     });
   } });
@@ -147,7 +150,7 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
   });
   app.delete("/api/manage/boxes/:id", { preHandler: auth }, async (request, reply) => {
     const result = input.store.delete((request.params as Id).id);
-    if (result === "not_empty") return reply.code(409).send({ error: "box_not_empty", message: "Move or remove books and Assorted Things captures first" });
+    if (result === "not_empty") return reply.code(409).send({ error: "box_not_empty", message: "Move or remove books, Assorted Things captures, and private scan activities first" });
     if (result === "missing") return reply.code(404).send({ error: "not_found", message: "Box not found" });
     return reply.code(204).send();
   });
@@ -191,6 +194,34 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
     return { boxes: input.store.listBoxes(1, 50).total, books: input.store.listBooks(1, 50).total };
   });
 
+  const activityView = (id: string) => {
+    const activity = input.store.getActivity(id);
+    if (!activity) return null;
+    const asset = input.store.getMediaAsset(activity.mediaAssetId);
+    return { ...activity, imageUrl: "/api/manage/activities/" + activity.id + "/image", media: asset ? { mimeType: asset.mimeType, byteSize: asset.byteSize, width: asset.width, height: asset.height, sha256: asset.sha256 } : null, candidates: input.store.listActivityCandidates(activity.id), events: input.store.listActivityEvents(activity.id) };
+  };
+  app.get("/api/manage/activities", { preHandler: auth }, async (request) => {
+    const query = request.query as { boxId?: string; limit?: string };
+    return { data: input.store.listActivities(query.boxId, limit(query.limit)).map(activity => activityView(activity.id)) };
+  });
+  app.get("/api/manage/activities/:id", { preHandler: auth }, async (request, reply) => {
+    return activityView((request.params as Id).id) ?? reply.code(404).send({ error: "not_found", message: "Scan activity not found" });
+  });
+  app.get("/api/manage/activities/:id/image", { preHandler: auth }, async (request, reply) => {
+    const activity = input.store.getActivity((request.params as Id).id);
+    const asset = activity ? input.store.getMediaAsset(activity.mediaAssetId) : undefined;
+    if (!asset) return reply.code(404).send({ error: "not_found", message: "Scan image not found" });
+    try { return reply.header("cache-control", "private, max-age=300").type(asset.mimeType).send(Buffer.from(await media.read(asset.storageKey))); }
+    catch { return reply.code(404).send({ error: "not_found", message: "Scan image bytes not found" }); }
+  });
+  app.post("/api/manage/candidates/:id/metadata-selection", { preHandler: auth }, async (request, reply) => {
+    const id = (request.params as Id).id;
+    if (!input.store.getCandidate(id)) return reply.code(404).send({ error: "not_found", message: "Candidate not found" });
+    const proposalId = (request.body as { proposalId?: string | null }).proposalId ?? null;
+    try { return { selected: input.store.selectMetadataProposal(id, proposalId), candidate: input.store.getCandidate(id) }; }
+    catch { return reply.code(404).send({ error: "metadata_proposal_not_found", message: "Metadata proposal does not belong to this candidate" }); }
+  });
+
   app.post("/api/manage/candidates/analyze", { preHandler: auth, bodyLimit: 14 * 1024 * 1024 }, async (request, reply) => {
     const body = request.body as { boxId: string; mimeType: string; imageBase64: string };
     const value = await candidates.analyze(body.boxId, body.mimeType, Buffer.from(body.imageBase64, "base64"));
@@ -200,8 +231,13 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
     return input.store.getCandidate((request.params as Id).id) ?? reply.code(404).send({ error: "not_found", message: "Candidate not found" });
   });
   app.patch("/api/manage/candidates/:id", { preHandler: auth }, async (request, reply) => {
-    const value = input.store.updateFields((request.params as Id).id, candidateFields(request.body, true));
-    return value ?? reply.code(409).send({ error: "invalid_candidate_state", message: "Only pending candidates can be edited" });
+    const id = (request.params as Id).id;
+    const value = input.store.updateFields(id, candidateFields(request.body, true));
+    if (!value) return reply.code(409).send({ error: "invalid_candidate_state", message: "Only pending candidates can be edited" });
+    if (input.bibliography) {
+      try { input.store.addMetadataProposals(id, await input.bibliography.findEditions(value.fields)); } catch { /* reviewed fields remain usable */ }
+    }
+    return input.store.getCandidate(id);
   });
   app.post("/api/manage/candidates/:id/reject", { preHandler: auth }, async (request, reply) => {
     const value = input.store.reject((request.params as Id).id);

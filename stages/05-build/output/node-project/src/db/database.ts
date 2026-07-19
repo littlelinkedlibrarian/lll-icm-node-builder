@@ -9,11 +9,12 @@ export function openDatabase(path: string): DatabaseSync {
   db.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;");
   sqliteVec.load(db);
   db.exec("CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)");
-  for (const migration of ["001_initial.sql", "002_assorted_things.sql"]) {
+  for (const migration of ["001_initial.sql", "002_assorted_things.sql", "003_scan_activity_metadata.sql"]) {
     const version = Number(migration.slice(0, 3));
     const applied = db.prepare("SELECT 1 FROM schema_migrations WHERE version = ?").get(version);
     if (applied) continue;
     const sql = readFileSync(new URL(`../../migrations/${migration}`, import.meta.url), "utf8");
+    if (!sql.trim()) throw new Error(`Migration ${migration} is empty`);
     db.exec("BEGIN IMMEDIATE");
     try {
       db.exec(sql);

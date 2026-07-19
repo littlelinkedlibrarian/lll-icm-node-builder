@@ -190,6 +190,37 @@ paths:
       responses:
         "200":
           description: Idempotently creates the local judge-demo boxes and books.
+  /api/manage/activities:
+    get:
+      operationId: listScanActivities
+      description: Lists private image-parent scan history with child result summaries.
+      security: [{ operatorToken: [] }]
+      responses:
+        "200": { description: Scan activities returned newest first. }
+  /api/manage/activities/{id}:
+    get:
+      operationId: getScanActivity
+      description: Returns one private scan, its candidate outcomes, metadata proposals, and append-only events.
+      security: [{ operatorToken: [] }]
+      responses:
+        "200": { description: Scan activity detail returned. }
+        "404": { description: Scan activity not found. }
+  /api/manage/activities/{id}/image:
+    get:
+      operationId: getScanActivityImage
+      description: Returns the protected original JPEG, PNG, or WebP evidence image for zoom review.
+      security: [{ operatorToken: [] }]
+      responses:
+        "200": { description: Original scan bytes. }
+        "404": { description: Scan image not found. }
+  /api/manage/candidates/{id}/metadata-selection:
+    post:
+      operationId: selectCandidateEditionMetadata
+      description: Selects one bounded bibliographic edition proposal or explicitly clears selection before confirmation.
+      security: [{ operatorToken: [] }]
+      responses:
+        "200": { description: Selection recorded; no book created. }
+        "404": { description: Candidate or proposal not found. }
   /api/manage/candidates/analyze:
     post:
       operationId: analyzeBookOrShelfImage

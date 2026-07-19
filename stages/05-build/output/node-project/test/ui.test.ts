@@ -25,7 +25,12 @@ describe("branded browser application", () => {
     expect((await app.inject({ method: "GET", url: "/assets/app.js" })).body).toContain("looking across the whole image");
     expect(home.body).toContain("One cover or several shelf spines");
     expect(home.body).toContain("candidate-batch-dialog");
+    expect(home.body).toContain("activity-history");
+    expect(home.body).toContain("activity-dialog");
+    expect(home.body).toContain("Private scan evidence");
     expect(home.body).toContain("Add selected books");
+    expect((await app.inject({ method: "GET", url: "/assets/app.js" })).body).toContain("metadata-selection");
+    expect((await app.inject({ method: "GET", url: "/assets/app.js" })).body).toContain("setActivityZoom");
     expect(home.body).toContain("Save photo for human review");
     expect(home.body).toContain("data-scan-kind=\"books\"");
     expect(home.body).toContain("data-scan-kind=\"assorted\"");

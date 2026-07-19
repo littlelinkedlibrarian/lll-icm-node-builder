@@ -10,3 +10,7 @@ docker compose --project-name happybox --env-file "${runtime_env}" \
   -f "${project_dir}/compose.production.yaml" exec -T \
   -e "BACKUP_DESTINATION=/app/backups/lll-node-${stamp}.sqlite" \
   app npm run backup
+
+docker compose --project-name happybox --env-file "${runtime_env}" \
+  -f "${project_dir}/compose.production.yaml" exec -T app \
+  sh -lc "if [ -d /app/data/media ]; then tar -C /app/data -czf /app/backups/lll-media-${stamp}.tar.gz media; fi"
