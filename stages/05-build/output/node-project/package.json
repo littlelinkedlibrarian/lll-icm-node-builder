@@ -3,23 +3,30 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=24.0.0" },
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "scripts": {
-    "dev": "node --watch --experimental-strip-types src/main.ts",
-    "start": "node --experimental-strip-types src/main.ts",
+    "dev": "tsx watch src/main.ts",
+    "start": "tsx src/main.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "check": "npm run typecheck && npm test"
   },
   "dependencies": {
+    "@modelcontextprotocol/ext-apps": "1.7.4",
+    "@modelcontextprotocol/sdk": "1.29.0",
     "@sinclair/typebox": "0.34.52",
     "fastify": "5.10.0",
     "openai": "6.48.0",
     "sqlite-vec": "0.1.9",
-    "yaml": "2.9.0"
+    "yaml": "2.9.0",
+    "zod": "4.4.3"
   },
   "devDependencies": {
+    "@modelcontextprotocol/inspector": "1.0.0",
     "@types/node": "24.10.1",
+    "tsx": "4.23.1",
     "typescript": "7.0.2",
     "vitest": "4.1.10"
   }
