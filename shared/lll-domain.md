@@ -30,6 +30,6 @@ Authentication, AI, vectors, public deployment, and federation are capability ch
 
 ## Assorted Things and other approved items
 
-An Assorted Things capture is box-scoped photo history, not a book or book journey. Preserve the original, time, box, human label/note, proposed fields, uncertainty, provenance, and reviewer decision. Save the manual record before enrichment, keep AI optional, and never let enrichment failure block capture.
+An Assorted Things capture is box-scoped photo history, not a book or book journey. Preserve the original, time, box, human label or note, human-authored fields, and reviewer decision. Default to no AI object recognition: the photo exists so neighbors can look for themselves, while only human-confirmed metadata becomes public.
 
 Use separate entities, prompts, review queues, and routes for captures and books even when one destination-first scanner selects between them. Confirmation records human review; it never creates a book. Pending and rejected captures remain protected. A confirmed capture may become visible through the owning box own-domain inventory, including a zoomable image, but remains outside the LLL Central compatibility contract unless that contract is explicitly revised. Ask the learner whether media belongs in SQLite, local files, or object storage based on scale, backup, and deployment needs; keep that choice behind a port.

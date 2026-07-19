@@ -94,12 +94,12 @@ Final evidence: a fresh clone can install, migrate, start, execute CRUD, produce
 
 - [x] Seed Happy Box at 66 Colon Ave, St. Augustine, FL 32084 with paired approximate coordinates.
 - [x] Add migration 002, domain types, repository port, SQLite media/history adapter, and guarded box deletion.
-- [x] Save manual captures before optional OpenAI structured enrichment; retain unknowns and human questions.
+- [x] Save Assorted Things photos locally for human-authored metadata; do not invoke object recognition.
 - [x] Add protected managed routes for capture, list/filter, original image, edit, reject, and idempotent confirm.
 - [x] Keep the workflow separate from books and outside the Central-compatible API.
 - [x] Add Garden, Terminal, and Cosmic theme selection with local persistence and responsive layouts.
-- [x] Add fake-backed integration evidence for offline save, protected images, AI proposals, confirmation, rejection, and no-book behavior.
-- [ ] Observe the full browser journey and run an opt-in live OpenAI smoke with a synthetic/non-sensitive image.
+- [x] Add integration evidence for offline save, protected images, human confirmation, rejection, and no-book behavior.
+- [ ] Observe the Assorted Things browser journey with a non-sensitive image; no OpenAI call is expected.
 - [ ] Deploy only after the owner approves environment, tunnel routing, operator token handling, backup path, and rollback.
 
 
@@ -107,7 +107,7 @@ Final evidence: a fresh clone can install, migrate, start, execute CRUD, produce
 
 - [x] Fast-forward Phase 1.5C into main and branch from the merged state.
 - [x] Replace the global Assorted Things menu with a destination-first Books or Assorted things scanner.
-- [x] Extract 1 through 15 book candidates from a cover or shelf-spine photo and review each independently.
+- [x] Extract 1 through 15 book candidates from a cover or shelf-spine photo and review the full batch in one modal, editing only exceptions.
 - [x] Add box inventory presentation for books and non-rejected operator captures.
 - [x] Publish only confirmed Assorted Things through box-scoped own-domain reads and zoomable images.
 - [x] Keep pending/rejected images protected and keep Assorted Things outside the Central compatibility profile.

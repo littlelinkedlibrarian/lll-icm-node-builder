@@ -12,7 +12,7 @@ const vision = openaiApiKey ? new OpenAIVisionExtractor(openaiApiKey, config.vis
 const app = buildApp({
   config, db, store,
   ...(vision ? {
-    vision, assorted: vision,
+    vision,
     embedder: new OpenAIEmbedder(openaiApiKey!, config.embeddingModel)
   } : {})
 });

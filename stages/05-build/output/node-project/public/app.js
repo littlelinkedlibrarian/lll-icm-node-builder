@@ -88,7 +88,7 @@ function renderBooks(books, mode) {
     article.innerHTML = `<div class="book-spine"></div><div><h3>${escapeHtml(book.title)}</h3><p>${escapeHtml(book.author)} · ${escapeHtml(box?.name ?? "Unboxed")}${book.genre ? ` · ${escapeHtml(book.genre)}` : ""}</p></div>${state.token ? `<div class="book-actions"><button class="icon-button" data-edit-book="${book.id}" aria-label="Edit ${escapeHtml(book.title)}">✎</button><button class="icon-button" data-delete-book="${book.id}" aria-label="Delete ${escapeHtml(book.title)}">×</button></div>` : ""}`;
     list.append(article);
   });
-  if (mode) $("#search-note").textContent = mode === "semantic" ? "Semantic results from OpenAI embeddings stored in local sqlite-vec." : mode === "keyword_fallback" ? "OpenAI or vectors were unavailable, so the node returned keyword results." : "Keyword results from the local catalog.";
+  if (mode) $("#search-note").textContent = mode === "semantic" ? "Multilingual semantic results from OpenAI embeddings stored in local sqlite-vec." : mode === "keyword_fallback" ? "OpenAI or vectors were unavailable, so the node returned keyword results." : "Keyword results from the local catalog.";
 }
 
 async function captureImageUrl(id) {
@@ -103,8 +103,6 @@ async function openAssortedReview(id) {
   const form = document.querySelector("#assorted-review-form"); form.reset(); form.captureId.value = capture.id; form.dataset.idempotencyKey = crypto.randomUUID();
   form.title.value = capture.fields.title; form.category.value = capture.fields.category ?? ""; form.description.value = capture.fields.description ?? ""; form.condition.value = capture.fields.condition ?? ""; form.quantity.value = capture.fields.quantity ?? ""; form.tags.value = capture.fields.tags.join(", ");
   document.querySelector("#assorted-review-image").src = await captureImageUrl(capture.id);
-  const fillList = (selector, values, fallback) => { const list = document.querySelector(selector); list.replaceChildren(); (values.length ? values : [fallback]).forEach(value => { const item = document.createElement("li"); item.textContent = value; list.append(item); }); };
-  fillList("#assorted-unknowns", capture.fields.unknowns, "No explicit unknowns"); fillList("#assorted-questions", capture.fields.reviewQuestions, "No questions proposed");
   form.querySelectorAll("input,textarea,button").forEach(control => { if (!control.classList.contains("dialog-close")) control.disabled = capture.state !== "pending_review"; });
   openDialog("assorted-dialog");
 }
@@ -182,6 +180,7 @@ document.addEventListener("click", async event => {
   if (target.dataset.openBox) await openBoxInventory(target.dataset.openBox);
   if (target.dataset.viewThing) openThing(target.dataset.viewThing);
   if (target.dataset.reviewAssorted) { $("#box-inventory-dialog").close(); await openAssortedReview(target.dataset.reviewAssorted); }
+  if (target.dataset.editCandidate) openCandidateEdit(target.dataset.editCandidate);
   if (target.dataset.editBox) { const box = state.boxes.find(item => item.id === target.dataset.editBox); const form = $("#box-form"); form.reset(); form.dataset.editId = box.id; ["name","description","location","latitude","longitude","visibility"].forEach(key => form[key].value = box[key] ?? ""); openDialog("box-dialog"); }
   if (target.dataset.deleteBox && confirm("Delete this empty box?")) { try { await api(`/api/manage/boxes/${target.dataset.deleteBox}`, { method: "DELETE" }); await loadManaged(); toast("Box deleted"); } catch (error) { toast(error.message); } }
   if (target.dataset.editBook) { const book = state.books.find(item => item.id === target.dataset.editBook); const form = $("#book-form"); form.reset(); form.dataset.editId = book.id; ["boxId","title","author","isbn","genre","description","language","condition"].forEach(key => form[key].value = book[key] ?? ""); openDialog("book-dialog"); }
@@ -192,11 +191,11 @@ document.addEventListener("click", async event => {
 document.querySelector("#assorted-form").addEventListener("submit", async event => {
   event.preventDefault(); return requireOperator(async () => {
     const file = document.querySelector("#assorted-camera").files[0] || document.querySelector("#assorted-image").files[0]; const status = document.querySelector("#assorted-status"); if (!document.querySelector("#scan-box").value) { status.textContent = "Choose a destination box first."; return; } if (!file) return;
-    status.textContent = "Saving locally first, then asking OpenAI what remains uncertain…";
+    status.textContent = "Saving the photo for human review…";
     try {
       const imageBase64 = await fileBase64(file);
-      await api("/api/manage/assorted/analyze", { method: "POST", body: { boxId: document.querySelector("#scan-box").value, mimeType: file.type, imageBase64, title: document.querySelector("#assorted-title").value, note: document.querySelector("#assorted-note").value } });
-      event.currentTarget.reset(); status.textContent = ""; await loadManaged(); toast("Photo saved; metadata is ready for human review");
+      await api("/api/manage/assorted/capture", { method: "POST", body: { boxId: document.querySelector("#scan-box").value, mimeType: file.type, imageBase64, title: document.querySelector("#assorted-title").value, note: document.querySelector("#assorted-note").value } });
+      event.currentTarget.reset(); status.textContent = ""; await loadManaged(); toast("Photo saved for human review");
     } catch (error) { status.textContent = error.message; }
   });
 });
@@ -222,26 +221,59 @@ $("#scan-form").addEventListener("submit", async event => {
     try {
       const imageBase64 = await fileBase64(file);
       const batch = await api("/api/manage/candidates/analyze", { method: "POST", body: { boxId: $("#scan-box").value, mimeType: file.type, imageBase64 } });
-      state.candidateQueue = [...batch.candidates]; status.textContent = batch.candidates.length + " book candidate" + (batch.candidates.length === 1 ? "" : "s") + " found — review each before publishing.";
-      reviewNextCandidate();
+      state.candidateQueue = [...batch.candidates]; status.textContent = batch.candidates.length + " book candidate" + (batch.candidates.length === 1 ? "" : "s") + " found — review them together before publishing.";
+      renderCandidateBatch(); openDialog("candidate-batch-dialog");
     } catch (error) { status.textContent = error.message; }
   });
 });
 
-function reviewNextCandidate() {
-  const candidate = state.candidateQueue.shift();
-  if (!candidate) { state.candidate = null; toast("Book scan review complete"); return; }
-  state.candidate = candidate; fillCandidate(candidate);
-  const total = Number(candidate.provenance.candidateCount || 1); const position = Number(candidate.provenance.position || 0) + 1;
-  $("#candidate-progress").textContent = "Book " + position + " of " + total + " from this photo";
-  openDialog("candidate-dialog");
+function completeCandidate(candidate) { return Boolean(candidate.fields.title?.trim() && candidate.fields.author?.trim()); }
+
+function renderCandidateBatch() {
+  const list = $("#candidate-batch-list"); list.replaceChildren();
+  state.candidateQueue.forEach((candidate, index) => {
+    const complete = completeCandidate(candidate); if (candidate._selected === undefined) candidate._selected = complete;
+    const row = document.createElement("article"); row.className = "candidate-batch-row" + (complete ? "" : " needs-review");
+    row.innerHTML = "<label class=\"candidate-select\"><input type=\"checkbox\" data-batch-candidate=\"" + candidate.id + "\"" + (candidate._selected ? " checked" : "") + "><span><strong>" + escapeHtml(candidate.fields.title || "Title needed") + "</strong><small>" + escapeHtml(candidate.fields.author || "Author needed") + (candidate.fields.genre ? " · " + escapeHtml(candidate.fields.genre) : "") + "</small></span></label><span class=\"candidate-state\">" + (complete ? "Ready" : "Needs edit") + "</span><button class=\"button button-quiet\" data-edit-candidate=\"" + candidate.id + "\" type=\"button\">Edit</button>";
+    list.append(row);
+  });
+  list.querySelectorAll("[data-batch-candidate]").forEach(input => input.addEventListener("change", () => { const candidate = state.candidateQueue.find(item => item.id === input.dataset.batchCandidate); if (candidate) candidate._selected = input.checked; }));
 }
 
-function fillCandidate(candidate) { const form = $("#candidate-form"); form.reset(); form.dataset.idempotencyKey = crypto.randomUUID(); form.candidateId.value = candidate.id; form.boxId.value = candidate.boxId; Object.entries(candidate.fields).forEach(([key,value]) => { if (form[key]) form[key].value = value ?? ""; }); }
-function candidatePayload(form) { return { title: form.title.value.trim(), author: form.author.value.trim(), isbn: optional(form.isbn.value), genre: optional(form.genre.value), description: optional(form.description.value), language: optional(form.language.value), condition: optional(form.condition.value) }; }
-$("#candidate-form").addEventListener("submit", async event => { event.preventDefault(); const form = event.currentTarget; try { await api("/api/manage/candidates/" + form.candidateId.value, { method: "PATCH", body: candidatePayload(form) }); await api("/api/manage/candidates/" + form.candidateId.value + "/confirm", { method: "POST", body: { actor: "browser-operator", idempotencyKey: form.dataset.idempotencyKey } }); form.closest("dialog").close(); await loadManaged(); toast("Reviewed book added to its box"); reviewNextCandidate(); } catch (error) { $(".form-status", form).textContent = error.message; } });
-$("#reject-candidate").addEventListener("click", async () => { const form = $("#candidate-form"); try { await api("/api/manage/candidates/" + form.candidateId.value + "/reject", { method: "POST", body: {} }); form.closest("dialog").close(); toast("Candidate rejected; no book was created"); reviewNextCandidate(); } catch (error) { $(".form-status", form).textContent = error.message; } });
+function openCandidateEdit(id) {
+  const candidate = state.candidateQueue.find(item => item.id === id); if (!candidate) return;
+  state.candidate = candidate; $("#candidate-batch-dialog").close(); fillCandidate(candidate);
+  const position = state.candidateQueue.findIndex(item => item.id === id) + 1;
+  $("#candidate-progress").textContent = "Candidate " + position + " of " + state.candidateQueue.length; openDialog("candidate-dialog");
+}
 
+function fillCandidate(candidate) { const form = $("#candidate-form"); form.reset(); form.candidateId.value = candidate.id; form.boxId.value = candidate.boxId; Object.entries(candidate.fields).forEach(([key,value]) => { if (form[key]) form[key].value = value ?? ""; }); }
+function candidatePayload(form) { return { title: form.title.value.trim(), author: form.author.value.trim(), isbn: optional(form.isbn.value), genre: optional(form.genre.value), description: optional(form.description.value), language: optional(form.language.value), condition: optional(form.condition.value) }; }
+
+$("#candidate-form").addEventListener("submit", async event => { event.preventDefault(); const form = event.currentTarget; try { const updated = await api("/api/manage/candidates/" + form.candidateId.value, { method: "PATCH", body: candidatePayload(form) }); updated._selected = true; const index = state.candidateQueue.findIndex(item => item.id === updated.id); if (index >= 0) state.candidateQueue[index] = updated; form.closest("dialog").close(); renderCandidateBatch(); openDialog("candidate-batch-dialog"); toast("Candidate updated"); } catch (error) { $(".form-status", form).textContent = error.message; } });
+
+$("#candidate-batch-form").addEventListener("submit", async event => {
+  event.preventDefault(); const form = event.currentTarget; const selected = state.candidateQueue.filter(candidate => candidate._selected);
+  if (!selected.length) { $(".form-status", form).textContent = "Select at least one book, or reject the batch."; return; }
+  if (selected.some(candidate => !completeCandidate(candidate))) { $(".form-status", form).textContent = "Edit selected candidates that still need a title or author."; return; }
+  try {
+    for (const candidate of state.candidateQueue) {
+      if (candidate._selected) await api("/api/manage/candidates/" + candidate.id + "/confirm", { method: "POST", body: { actor: "browser-operator", idempotencyKey: crypto.randomUUID() } });
+      else await api("/api/manage/candidates/" + candidate.id + "/reject", { method: "POST", body: {} });
+    }
+    state.candidateQueue = []; form.closest("dialog").close(); await loadManaged(); toast(selected.length + " reviewed book" + (selected.length === 1 ? "" : "s") + " added");
+  } catch (error) { $(".form-status", form).textContent = error.message; }
+});
+
+async function rejectCandidateBatch() {
+  for (const candidate of state.candidateQueue) { try { await api("/api/manage/candidates/" + candidate.id + "/reject", { method: "POST", body: {} }); } catch {} }
+  state.candidateQueue = []; $("#candidate-batch-dialog").close(); toast("Book candidates rejected");
+}
+
+$("#reject-batch").addEventListener("click", rejectCandidateBatch);
+$("#candidate-batch-close").addEventListener("click", rejectCandidateBatch);
+$("#candidate-edit-close").addEventListener("click", () => { renderCandidateBatch(); openDialog("candidate-batch-dialog"); });
+$("#reject-candidate").addEventListener("click", async () => { const form = $("#candidate-form"); try { await api("/api/manage/candidates/" + form.candidateId.value + "/reject", { method: "POST", body: {} }); state.candidateQueue = state.candidateQueue.filter(item => item.id !== form.candidateId.value); form.closest("dialog").close(); renderCandidateBatch(); if (state.candidateQueue.length) openDialog("candidate-batch-dialog"); else toast("No candidates remain"); } catch (error) { $(".form-status", form).textContent = error.message; } });
 
 function assortedPayload(form) {
   const current = state.captures.find(item => item.id === form.captureId.value);

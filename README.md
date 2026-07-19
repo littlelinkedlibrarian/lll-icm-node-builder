@@ -69,4 +69,4 @@ MIT. See `LICENSE`.
 
 ## Phase 1.5D reference experience
 
-The checked-in reference run includes Happy Box at `66 Colon Ave, St. Augustine, FL 32084`, a destination-first scanner for Books or Assorted Things, and Garden, Terminal, and Cosmic themes. One cover or shelf image can create a bounded batch of independently reviewed book candidates. Confirmed puzzles, note cards, art, and trinkets appear as zoomable inventory inside their box; pending and rejected captures remain private and all Assorted Things stay outside the Central compatibility profile.
+The checked-in reference run includes Happy Box at `66 Colon Ave, St. Augustine, FL 32084`, a destination-first scanner for Books or Assorted Things, and Garden, Terminal, and Cosmic themes. One cover or shelf image creates a bounded set of book candidates reviewed together, with edits only where needed. Assorted Things uses human-only photo capture and description; confirmed puzzles, note cards, art, and trinkets appear as zoomable inventory inside their box; pending and rejected captures remain private and all Assorted Things stay outside the Central compatibility profile.

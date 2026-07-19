@@ -1,6 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { AssortedFields, Book, Box, CandidateFields, SearchMode } from "../domain/model.js";
-import type { AssortedExtractor, Embedder, VectorIndex, VisionExtractor } from "../ports/index.js";
+import type { Embedder, VectorIndex, VisionExtractor } from "../ports/index.js";
 import { SqliteStore } from "../db/store.js";
 
 export class DomainError extends Error {
@@ -85,7 +85,7 @@ export function assortedFields(value: unknown): AssortedFields {
 }
 
 export class AssortedCaptureService {
-  constructor(private readonly store: SqliteStore, private readonly extractor?: AssortedExtractor) {}
+  constructor(private readonly store: SqliteStore) {}
   async capture(input: { boxId: string; mimeType: string; bytes: Uint8Array; title?: string; note?: string }) {
     if (!this.store.getBox(input.boxId)) throw new DomainError("box_not_found", 404, "Destination box does not exist");
     if (!["image/jpeg", "image/png", "image/webp"].includes(input.mimeType)) throw new DomainError("unsupported_image", 400, "Use JPEG, PNG, or WebP");
@@ -94,20 +94,10 @@ export class AssortedCaptureService {
     const manualNote = input.note?.trim() || null;
     const initial = assortedFields({
       title: manualTitle, category: null, description: manualNote, tags: [], condition: null, quantity: null,
-      unknowns: ["category", "condition", "quantity"],
-      reviewQuestions: ["What is this item?", "How many are present?", "Is it ready to share?"]
+      unknowns: [],
+      reviewQuestions: []
     });
-    const stored = this.store.createAssorted({ boxId: input.boxId, mimeType: input.mimeType, bytes: input.bytes, fields: initial });
-    if (!this.extractor) return stored;
-    try {
-      const extracted = await this.extractor.extractAssorted({ mimeType: input.mimeType, bytes: input.bytes });
-      const proposed = assortedFields(extracted.fields);
-      return this.store.enrichAssorted(stored.id, {
-        ...proposed, title: input.title?.trim() || proposed.title, description: manualNote ?? proposed.description
-      }, extracted.provenance) ?? stored;
-    } catch {
-      return stored;
-    }
+    return this.store.createAssorted({ boxId: input.boxId, mimeType: input.mimeType, bytes: input.bytes, fields: initial });
   }
 }
 

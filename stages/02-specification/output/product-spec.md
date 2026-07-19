@@ -22,7 +22,7 @@ The learning policy requires explicit `uiUrl` and `apiBaseUrl`; current Central 
 - Anonymous visitor: reads public boxes and books and uses keyword or semantic search.
 - Local operator: authenticates locally and performs box, book, candidate, and configuration writes.
 - Central: anonymous or separately authenticated consumer of the narrow public compatibility adapter.
-- GPT-5.6 adapter: prepares book candidates and Assorted Things metadata proposals only.
+- GPT-5.6 adapter: prepares bounded book candidates only; Assorted Things is deliberately human-described.
 - Embedding adapter: creates vectors only for confirmed canonical books.
 - MCP caller: Phase 1.5B adapter using the same operator permissions and application services.
 
@@ -149,11 +149,10 @@ Next allowed stage: Stage 03 architecture.
 ### Assorted Things capture and review
 
 1. The authenticated operator chooses a box, photo, and optional human label or note.
-2. The node stores the original and manual pending-review record before contacting OpenAI.
-3. When configured, the OpenAI adapter proposes a bounded title, category, description, tags, condition, quantity, explicit unknowns, and questions. Unsupported facts remain null; ownership, value, safety, brand, material, and identity are never invented.
-4. OpenAI failure leaves the saved manual capture usable.
-5. The operator edits, rejects, or idempotently confirms the capture. Confirmation records review; it never creates a book.
-6. Captures and images require the local operator token and never appear in the six Central compatibility reads.
+2. The node stores the original as a pending-review record without sending it to an AI model.
+3. A human looks at the image and supplies only the metadata useful to neighbors.
+4. The operator rejects or idempotently confirms the capture. Confirmation records review; it never creates a book.
+5. Captures and images require the local operator token and never appear in the six Central compatibility reads.
 
 ### Branded presentation
 
@@ -173,8 +172,8 @@ Garden is the accessible warm default. Terminal and Cosmic are alternate code-na
 1. One image may contain a cover or several shelf spines.
 2. GPT-5.6 returns a structured array of 1 through 15 visibly supported candidates in image order. Unsupported title or author text remains empty for human completion; ISBN is never invented.
 3. Every candidate receives a shared batch identifier, position, count, and model provenance.
-4. The operator edits, confirms, or rejects every candidate independently. No batch-level auto-publish exists.
-5. MCP returns the same batch and instructs ChatGPT to review candidates independently.
+4. The browser presents every candidate in one review modal. Complete candidates are selected by default; the operator edits only incomplete or incorrect rows and may reject any result.
+5. One final action confirms selected candidates independently and rejects unchecked candidates; MCP returns the same bounded batch and preserves the human gate.
 
 ### Deferred personalization slices
 

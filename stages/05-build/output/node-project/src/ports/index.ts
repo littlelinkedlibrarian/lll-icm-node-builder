@@ -26,9 +26,6 @@ export interface CandidateRepository {
 export interface VisionExtractor {
   extract(image: { mimeType: string; bytes: Uint8Array }): Promise<{ candidates: CandidateFields[]; provenance: Record<string, unknown> }>;
 }
-export interface AssortedExtractor {
-  extractAssorted(image: { mimeType: string; bytes: Uint8Array }): Promise<{ fields: AssortedFields; provenance: Record<string, unknown> }>;
-}
 export interface AssortedCaptureRepository {
   createAssorted(input: { boxId: string; mimeType: string; bytes: Uint8Array; fields: AssortedFields }): AssortedCapture;
   getAssorted(id: string): AssortedCapture | undefined;

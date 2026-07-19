@@ -220,10 +220,10 @@ paths:
       security: [{ operatorToken: [] }]
       responses:
         "200": { description: Idempotently confirmed candidate and canonical book. }
-  /api/manage/assorted/analyze:
+  /api/manage/assorted/capture:
     post:
       operationId: captureAssortedThing
-      description: Saves the box-scoped image and manual context before optional OpenAI enrichment. Never creates a book.
+      description: Saves the box-scoped image and manual context for human description and confirmation. It does not call an AI model and never creates a book.
       security: [{ operatorToken: [] }]
       responses:
         "201": { description: Pending human-review capture saved. }

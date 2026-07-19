@@ -24,6 +24,11 @@ describe("branded browser application", () => {
     expect(home.body).toContain("Cosmic");
     expect((await app.inject({ method: "GET", url: "/assets/app.js" })).body).toContain("looking across the whole image");
     expect(home.body).toContain("One cover or several shelf spines");
+    expect(home.body).toContain("candidate-batch-dialog");
+    expect(home.body).toContain("Add selected books");
+    expect(home.body).toContain("Save photo for human review");
+    expect(home.body).toContain("data-scan-kind=\"books\"");
+    expect(home.body).toContain("data-scan-kind=\"assorted\"");
     expect(home.body).toContain("capture=\"environment\"");
     expect(home.body).toContain("Take a shelf photo");
     expect(home.body).not.toContain("href=\"#assorted\"");

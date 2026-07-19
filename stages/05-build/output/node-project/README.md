@@ -8,8 +8,8 @@ The node owns its boxes, books, scan candidates, audit trail, and vectors. Centr
 
 - A responsive branded library UI with local map, catalog, destination-first Books or Assorted Things scanner, operator controls, and a Garden/Terminal/Cosmic theme switcher.
 - A seeded Happy Box at `66 Colon Ave, St. Augustine, FL 32084` for the hackathon walkthrough.
-- One cover or shelf-spine photo produces 1 through 15 independently editable book candidates; only reviewed confirmations create books.
-- Box-scoped Assorted Things photos: manual-first durable capture, optional OpenAI suggestions, explicit unknowns, and human confirm/reject without creating books. Confirmed puzzles, note cards, art, and trinkets are zoomable inside their box.
+- One cover or shelf-spine photo produces 1 through 15 book candidates in one review modal; edit only incomplete or incorrect results, then publish the selected books together.
+- Box-scoped Assorted Things photos use durable human-only capture and confirm/reject without object recognition or book creation. Confirmed puzzles, note cards, art, and trinkets are zoomable inside their box.
 - Browser-based box and book CRUD, including moving books between boxes.
 - Seven MCP tools for catalog discovery, maps, photo analysis, review, and confirmed book creation.
 - A ChatGPT widget resource that renders box maps, books, and scan candidates.
@@ -19,9 +19,10 @@ The node owns its boxes, books, scan candidates, audit trail, and vectors. Centr
 - Editable pending candidates; only idempotent human confirmation creates a book.
 - `text-embedding-3-small` embeddings stored and searched locally with exact-pinned `sqlite-vec`.
 - Deterministic keyword fallback when OpenAI or vector search is unavailable.
+- Book covers and external bibliographic enrichment are not implemented yet: `coverUrl` remains null and the UI uses a colored spine placeholder. The next approved slice is ISBN-first metadata and cover lookup with source attribution, local caching, and human approval.
 - SQLite migrations, integrity checking, safe backup boundary, and recovery tests.
 
-Production login, HTTPS deployment, backup placement, live-model evidence, and the Central round trip remain Phase 1.5C release work. Assorted Things originals are now intentionally persisted in the local SQLite reference adapter.
+The reference deployment uses HTTPS through the configured tunnel, durable local SQLite storage, and an external backup path. The full Central round trip remains release evidence to capture. Assorted Things originals are intentionally persisted in the local SQLite reference adapter.
 
 ## Requirements
 
@@ -47,7 +48,7 @@ The default origin is `http://localhost:3000`. SQLite data is created at `./data
 
 Open that origin in a browser, choose **Operator access**, enter the configured token, then choose **Load demo** for a judge-ready walkthrough. The seed is idempotent and includes Happy Box at the St. Augustine address.
 
-Without `OPENAI_API_KEY`, manual CRUD, public reads, health, keyword search, and Assorted Things capture/review still work. Book candidate analysis returns an explicit unavailable response; Assorted Things saves first and simply remains a manual pending review.
+Without `OPENAI_API_KEY`, manual CRUD, public reads, health, keyword search, and Assorted Things capture/review still work. Book candidate analysis returns an explicit unavailable response; Assorted Things behavior is unchanged because it never invokes OpenAI.
 
 ## API boundaries
 
@@ -68,7 +69,7 @@ Authorization: Bearer <OPERATOR_TOKEN>
 
 Assorted Things management routes live under `/api/manage/assorted`. Pending and rejected captures remain private. Confirmed items gain own-domain reads at `GET /api/boxes/{id}/assorted` and `GET /api/assorted/{id}/image`; these extensions remain deliberately outside the Central-compatible surface.
 
-Search is `GET /api/search?q=ocean&boxId=<optional-uuid>`. Its response reports `semantic`, `keyword`, or `keyword_fallback`.
+Search is `GET /api/search?q=ocean&boxId=<optional-uuid>`. Its response reports `semantic`, `keyword`, or `keyword_fallback`. Semantic mode embeds confirmed title, author, genre, description, and language metadata plus the query in the same OpenAI vector space, so a query may be written in another language. The node does not translate or duplicate catalog metadata; keyword fallback remains same-text matching.
 
 The complete contract is [contracts/openapi.yaml](contracts/openapi.yaml).
 
@@ -105,7 +106,7 @@ Current Central derives the UI origin from the registered endpoint, so splitting
 
 ## OpenAI ownership
 
-The OpenAI adapter has two strict proposal schemas. Book and shelf bytes remain temporary and produce a bounded array of editable bibliographic candidates with shared batch provenance. Assorted Things originals are saved locally first; OpenAI then proposes bounded metadata, unknowns, and human questions. Both paths store provenance, and neither adapter writes repositories directly. Application services validate proposals; a local operator controls every canonical transition.
+The OpenAI adapter is limited to the book scanner. Book and shelf bytes remain temporary and produce a bounded array of editable bibliographic candidates with shared batch provenance. Assorted Things never calls OpenAI: it stores a local photo for human description and confirmation. The adapter never writes repositories directly; application services validate book proposals and a local operator controls every canonical transition.
 
 Embeddings are derived from the versioned `book-search-v1` text representation. A canonical book may exist without a vector, and a model outage never rolls back inventory.
 

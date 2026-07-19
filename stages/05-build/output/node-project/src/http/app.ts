@@ -7,7 +7,7 @@ import { AssortedCaptureService, CandidateService, DomainError, SearchService, a
 import { readiness } from "../db/database.js";
 import { SqliteStore } from "../db/store.js";
 import { handleMcpRequest } from "../mcp/server.js";
-import type { AssortedExtractor, Embedder, VisionExtractor } from "../ports/index.js";
+import type { Embedder, VisionExtractor } from "../ports/index.js";
 
 type Id = { id: string };
 type Paging = { page?: string; limit?: string };
@@ -36,10 +36,10 @@ const compatibleBook = (book: Book) => ({
   updatedAt: book.updatedAt
 });
 
-export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: SqliteStore; vision?: VisionExtractor; assorted?: AssortedExtractor; embedder?: Embedder }) {
+export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: SqliteStore; vision?: VisionExtractor; embedder?: Embedder }) {
   const app = Fastify({ logger: false });
   const candidates = new CandidateService(input.store, input.vision);
-  const assorted = new AssortedCaptureService(input.store, input.assorted);
+  const assorted = new AssortedCaptureService(input.store);
   const search = new SearchService(input.store, input.store, input.embedder);
   const auth = async (request: FastifyRequest, reply: FastifyReply) => {
     if (!input.config.operatorToken || request.headers.authorization !== `Bearer ${input.config.operatorToken}`) {
@@ -224,7 +224,7 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
     try { await search.index(result.book); } catch { /* retry in a later job adapter */ }
     return result;
   });
-  app.post("/api/manage/assorted/analyze", { preHandler: auth, bodyLimit: 14 * 1024 * 1024 }, async (request, reply) => {
+  app.post("/api/manage/assorted/capture", { preHandler: auth, bodyLimit: 14 * 1024 * 1024 }, async (request, reply) => {
     const body = request.body as { boxId: string; mimeType: string; imageBase64: string; title?: string; note?: string };
     const value = await assorted.capture({ ...body, bytes: Buffer.from(body.imageBase64, "base64") });
     return reply.code(201).send(value);

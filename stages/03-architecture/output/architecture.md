@@ -140,8 +140,8 @@ Coordinates describe the public box or service area, not a private residence by 
 
 ## Phase 1.5C Assorted Things amendment
 
-Migration 002 adds `assorted_captures`, separate from `scan_candidates` and `books`. The reference media adapter stores bounded original bytes in the same SQLite file for one-file portability; the application port permits a later filesystem or S3 adapter. Capture saves occur before OpenAI enrichment. State is `pending_review`, `confirmed`, or `rejected`; confirmation is idempotent, audited, and never creates inventory.
+Migration 002 adds `assorted_captures`, separate from `scan_candidates` and `books`. The reference media adapter stores bounded original bytes in the same SQLite file for one-file portability; the application port permits a later filesystem or S3 adapter. Capture does not invoke AI; a human describes the retained photo. State is `pending_review`, `confirmed`, or `rejected`; confirmation is idempotent, audited, and never creates inventory.
 
-The OpenAI adapter uses a second strict Responses API schema for visible, bounded item descriptors plus `unknowns` and `reviewQuestions`. Failure is swallowed only after the canonical manual capture exists. Images and metadata remain behind the local operator realm and outside the six public LLL compatibility reads.
+Images and metadata remain behind the local operator realm until human confirmation and outside the six public LLL compatibility reads. OpenAI remains available only to the separately bounded book scanner and embedding adapter.
 
 The UI uses code-native CSS tokens with Garden, Terminal, and Cosmic themes and browser-local persistence. Theme state is a presentation adapter concern and does not enter SQLite or public contracts.
