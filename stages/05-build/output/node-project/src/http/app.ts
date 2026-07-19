@@ -182,13 +182,13 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
     ];
     const boxes = fixtures.map(fixture => input.store.listBoxes(1, 50).data.find(box => box.name === fixture.name) ?? input.store.create({ ...fixture, visibility: "public" as const }));
     const books = [
-      { boxId: boxes[0]!.id, title: "The Sea Around Us", author: "Rachel Carson", genre: "Nature", description: "A lyrical exploration of ocean life." },
-      { boxId: boxes[0]!.id, title: "Braiding Sweetgrass", author: "Robin Wall Kimmerer", genre: "Nature", description: "Indigenous wisdom and the teachings of plants." },
-      { boxId: boxes[1]!.id, title: "The Little Prince", author: "Antoine de Saint-Exupéry", genre: "Fiction", description: "A small traveler asks the questions adults forget." }
+      { boxId: boxes[0]!.id, title: "The Sea Around Us", author: "Rachel Carson", isbn: "9780195069976", genre: "Nature and science", description: "Rachel Carson follows the oceans from their ancient origins through tides, currents, deep-sea life, and humanity’s enduring relationship with the sea.", language: "en", condition: "good", visibility: "public" as const, aiProvenance: null, coverUrl: "https://covers.openlibrary.org/b/isbn/9780195069976-L.jpg", publicationYear: 1991, metadataProvenance: { provider: "openlibrary", sourceUrl: "https://openlibrary.org/works/OL1884867W", seededForDemo: true } },
+      { boxId: boxes[0]!.id, title: "Braiding Sweetgrass", author: "Robin Wall Kimmerer", isbn: "9781571313560", genre: "Nature and Indigenous knowledge", description: "A botanist and member of the Citizen Potawatomi Nation brings scientific knowledge together with Indigenous teachings about plants, reciprocity, gratitude, and care for the living world.", language: "en", condition: "like_new", visibility: "public" as const, aiProvenance: null, coverUrl: "https://covers.openlibrary.org/b/isbn/9781571313560-L.jpg", publicationYear: 2013, metadataProvenance: { provider: "openlibrary", sourceUrl: "https://openlibrary.org/works/OL16819897W", seededForDemo: true } },
+      { boxId: boxes[1]!.id, title: "The Little Prince", author: "Antoine de Saint-Exupéry", isbn: "9780156012195", genre: "Fiction and philosophy", description: "A young traveler moves between tiny planets and encounters friendship, loneliness, responsibility, and the truths that are easiest to see with the heart.", language: "en", condition: "fair", visibility: "public" as const, aiProvenance: null, coverUrl: "https://covers.openlibrary.org/b/isbn/9780156012195-L.jpg", publicationYear: 2000, metadataProvenance: { provider: "openlibrary", sourceUrl: "https://openlibrary.org/works/OL10263W", seededForDemo: true } }
     ];
     for (const fixture of books) {
-      if (input.store.listBooks(1, 50).data.some(book => book.title === fixture.title && book.boxId === fixture.boxId)) continue;
-      const book = input.store.create({ ...fixture, isbn: null, language: "en", condition: "good", visibility: "public", aiProvenance: null });
+      const existing = input.store.listBooks(1, 100).data.find(book => book.title === fixture.title && book.boxId === fixture.boxId);
+      const book = existing ? input.store.update(existing.id, fixture) as Book : input.store.create(fixture);
       try { await search.index(book); } catch { /* demo remains available through keyword search */ }
     }
     return { boxes: input.store.listBoxes(1, 50).total, books: input.store.listBooks(1, 50).total };

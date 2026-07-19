@@ -16,7 +16,7 @@ Open the public URL, choose **Operator access**, paste the token, and connect.
 
 1. Switch between **Garden**, **Terminal**, and **Cosmic**. Reload once and confirm the selection persists.
 2. Open **Library boxes** and confirm **Happy Box** shows `66 Colon Ave, St. Augustine, FL 32084`.
-3. Confirm the seeded catalog contains three books across two boxes.
+3. Choose **Load demo** and confirm the three books across two boxes show covers. Open each Book details modal and verify ISBN, description, language, condition, publication year, and catalog source; running the seed again must not duplicate them.
 4. Create a temporary box, edit its name/location, then delete it while empty.
 5. Select Happy Box anywhere on its card, then select a book inside its inventory and verify the cover, description, ISBN, language, condition, publication year, and box appear in Book details. Add a manual book, edit or move it, search for it, and delete it.
 6. In **Scanner**, select **Books**, Happy Box, and a non-sensitive photo containing at least three visible book spines. Confirm a clearly bordered thumbnail, filename, type, and size appear before submission. On mobile, choose the camera when the browser offers it.

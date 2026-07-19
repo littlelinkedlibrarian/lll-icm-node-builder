@@ -284,8 +284,8 @@ document.querySelector("#assorted-form").addEventListener("submit", async event 
     status.textContent = "Saving the photo for human review…";
     try {
       const imageBase64 = await fileBase64(file);
-      await api("/api/manage/assorted/capture", { method: "POST", body: { boxId: document.querySelector("#scan-box").value, mimeType: file.type, imageBase64, title: document.querySelector("#assorted-title").value, note: document.querySelector("#assorted-note").value } });
-      event.currentTarget.reset(); clearFileSelection("assorted"); status.textContent = ""; await loadManaged(); toast("Photo saved for human review");
+      const capture = await api("/api/manage/assorted/capture", { method: "POST", body: { boxId: document.querySelector("#scan-box").value, mimeType: file.type, imageBase64, title: document.querySelector("#assorted-title").value, note: document.querySelector("#assorted-note").value } });
+      status.textContent = "Saved — opening human review…"; event.currentTarget.reset(); clearFileSelection("assorted"); await loadManaged(); status.textContent = ""; await openAssortedReview(capture.id); toast("Photo saved — describe the item, then publish or reject it");
     } catch (error) { status.textContent = error.message; }
   });
 });
