@@ -1,8 +1,8 @@
 # LLL ICM Node Builder
 
-An instruction-only workspace using Jake Van Clief and David McDermott's Interpretable Context Methodology (ICM) to guide one coding agent through building a library node.
+An instruction-driven workspace using Jake Van Clief and David McDermott's Interpretable Context Methodology (ICM) to guide one coding agent through building a library node.
 
-There is no reference application. Numbered folders are the orchestration layer. Each stage reads explicitly routed context, writes a plain-file artifact, and pauses where human judgment matters. The next stage reads the reviewed artifact.
+The repository remains instruction-first: numbered folders are the orchestration layer. A generated reference run is checked in as evidence that the method produces a working application; it is not a required technology stack. Each stage reads explicitly routed context, writes a plain-file artifact, and pauses where human judgment matters. The next stage reads the reviewed artifact.
 
 ## What it can produce
 
@@ -40,9 +40,9 @@ Use `status` to see completed and pending stages.
              -> 05-build -> 06-validation -> 07-release
 ```
 
-The generated application lives under `stages/05-build/output/`. Release evidence and any candidate LLL registration artifacts live under `stages/07-release/output/`.
+The current generated reference application lives under [`stages/05-build/output/node-project`](stages/05-build/output/node-project/). Future runs write their selected implementation under `stages/05-build/output/` without inheriting its language or datastore. Release evidence and any candidate LLL registration artifacts live under `stages/07-release/output/`.
 
-The application-focused Build Week phases and Central companion demo are described in `docs/HACKATHON-APPLICATION-PLAN.md`.
+The application-focused Build Week phases and Central companion demo are described in [`docs/HACKATHON-APPLICATION-PLAN.md`](docs/HACKATHON-APPLICATION-PLAN.md). The completed local 1.5B application narrative is in [`docs/PHASE-1.5B-APPLICATION.md`](docs/PHASE-1.5B-APPLICATION.md).
 
 ## Context layers
 

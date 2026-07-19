@@ -1,11 +1,15 @@
 # LLL ICM Reference Node
 
-This is the Phase 1.5A product foundation generated through the repository's Interpretable Context Methodology. It is both an independently branded, own-domain library service and an LLL Central-compatible read node.
+This is the working Phase 1.5B application generated through the repository's Interpretable Context Methodology. It is both an independently branded, own-domain library service and an LLL Central-compatible read node, with a browser UI and an MCP interface for ChatGPT-compatible agents.
 
 The node owns its boxes, books, scan candidates, audit trail, and vectors. Central discovers and reads public data; it does not become the node's database.
 
 ## What works
 
+- A responsive branded library UI with local map, catalog, scanner, operator controls, and demo data.
+- Browser-based box and book CRUD, including moving books between boxes.
+- Seven MCP tools for catalog discovery, maps, photo analysis, review, and confirmed book creation.
+- A ChatGPT widget resource that renders box maps, books, and scan candidates.
 - Full box and book CRUD behind a local operator bearer token.
 - Anonymous LLL Lite 0.1.0-compatible reads for health, boxes, books, and box inventory.
 - JPEG/PNG/WebP vision extraction through the OpenAI Responses API and `gpt-5.6-sol`.
@@ -14,7 +18,7 @@ The node owns its boxes, books, scan candidates, audit trail, and vectors. Centr
 - Deterministic keyword fallback when OpenAI or vector search is unavailable.
 - SQLite migrations, integrity checking, safe backup boundary, and recovery tests.
 
-The branded UI, production login, map, persistent covers, Central demo registration, and ChatGPT/MCP tools belong to Phase 1.5B.
+Production login, persistent image storage, HTTPS deployment, live-model evidence, and the Central round trip belong to Phase 1.5C.
 
 ## Requirements
 
@@ -37,6 +41,8 @@ npm start
 ```
 
 The default origin is `http://localhost:3000`. SQLite data is created at `./data/lll-node.sqlite`.
+
+Open that origin in a browser, choose **Operator access**, enter the configured token, then choose **Load demo library** for a judge-ready walkthrough.
 
 Without `OPENAI_API_KEY`, manual CRUD, public reads, health, and keyword search still work. Candidate analysis returns an explicit unavailable response instead of inventing data.
 
@@ -61,13 +67,33 @@ Search is `GET /api/search?q=ocean&boxId=<optional-uuid>`. Its response reports 
 
 The complete contract is [contracts/openapi.yaml](contracts/openapi.yaml).
 
+## ChatGPT and MCP Inspector
+
+The authenticated Streamable HTTP MCP endpoint is:
+
+```text
+http://localhost:3000/mcp
+```
+
+Inspect it locally with:
+
+```bash
+npx mcp-inspector \
+  --transport http \
+  --server-url http://localhost:3000/mcp \
+  --header "Authorization: Bearer $OPERATOR_TOKEN"
+```
+
+Useful prompts include “show my library boxes,” “search my catalog for ocean books,” and “analyze this book photo for the Garden Gate box.” The write path deliberately separates analysis, editable preparation, and explicit confirmation. Reusing the same idempotency key returns the original confirmed book.
+
 ## Own domain and Central
 
 For the current hackathon companion, serve the UI and API on one HTTPS origin:
 
 ```text
-https://mylittlebox.example/       branded UI (Phase 1.5B)
+https://mylittlebox.example/       branded UI
 https://mylittlebox.example/api/   compatible API
+https://mylittlebox.example/mcp    authenticated agent interface
 ```
 
 Current Central derives the UI origin from the registered endpoint, so splitting UI and API across domains will break navigation until Central gains explicit `uiUrl` and `apiBaseUrl` fields. Registration is opt-in and disabled by default. Compatibility is not a claim of network membership.
@@ -97,3 +123,5 @@ npm test
 ```
 
 Ordinary tests use deterministic OpenAI fakes but load the real sqlite-vec extension. Live model use is intentionally credential-gated and is not part of CI.
+
+See [the Phase 1.5B application narrative](../../../../docs/PHASE-1.5B-APPLICATION.md) for the architecture, portability contract, implementation decisions, and next steps.

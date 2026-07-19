@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#173f35">
+    <title>Little Green Library</title>
+    <link rel="stylesheet" href="/assets/styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="#home" aria-label="Little Green Library home">
+        <span class="brand-mark" aria-hidden="true">L</span>
+        <span><strong id="node-name">Little Green Library</strong><small>Books belong in motion.</small></span>
+      </a>
+      <nav aria-label="Primary navigation">
+        <a href="#boxes">Boxes</a><a href="#catalog">Catalog</a><a href="#scanner">Scanner</a>
+      </nav>
+      <button class="button button-quiet" id="operator-button" type="button">Operator access</button>
+    </header>
+
+    <main>
+      <section class="hero" id="home">
+        <div class="hero-copy">
+          <p class="eyebrow">A library node with a life of its own</p>
+          <h1>Share the book.<br><em>Keep the story moving.</em></h1>
+          <p class="hero-text">Run your own little library, scan a cover into an editable record, and stay discoverable from the wider LLL catalog without giving away ownership of your data.</p>
+          <div class="hero-actions"><a class="button button-primary" href="#boxes">Explore boxes</a><a class="text-link" href="#scanner">Scan a book <span>→</span></a></div>
+        </div>
+        <div class="hero-art" aria-label="Illustrated neighborhood library box">
+          <div class="sun"></div><div class="cloud cloud-one"></div><div class="cloud cloud-two"></div>
+          <div class="library-box"><div class="roof"></div><div class="case"><div class="shelf"><i></i><i></i><i></i><i></i><i></i></div><div class="shelf shelf-two"><i></i><i></i><i></i><i></i></div></div><div class="post"></div></div>
+          <div class="hill hill-back"></div><div class="hill hill-front"></div>
+        </div>
+      </section>
+
+      <section class="stats" aria-label="Node status">
+        <div><strong id="box-count">—</strong><span>library boxes</span></div>
+        <div><strong id="book-count">—</strong><span>books in motion</span></div>
+        <div><strong id="node-health">checking</strong><span>local node</span></div>
+        <div><strong>yours</strong><span>data ownership</span></div>
+      </section>
+
+      <section class="section" id="boxes">
+        <div class="section-heading"><div><p class="eyebrow">Your neighborhood shelf</p><h2>Library boxes</h2></div><div class="section-actions"><button class="button button-quiet" id="seed-button" type="button">Load demo</button><button class="button button-primary requires-operator" data-dialog="box-dialog" type="button">Add a box</button></div></div>
+        <div class="view-switch" role="group" aria-label="Box view"><button class="active" data-view="cards" type="button">Cards</button><button data-view="map" type="button">Map</button></div>
+        <div class="card-grid" id="box-grid" aria-live="polite"></div>
+        <div class="map-panel hidden" id="box-map"><div class="map-grid" id="map-pins"></div><p>Coordinates are plotted locally. No map provider receives your box locations.</p></div>
+      </section>
+
+      <section class="section section-tint" id="catalog">
+        <div class="section-heading"><div><p class="eyebrow">Find the next reader</p><h2>Search the catalog</h2></div><button class="button button-primary requires-operator" data-dialog="book-dialog" type="button">Add a book</button></div>
+        <form class="search-bar" id="search-form"><label class="sr-only" for="search-query">Search books</label><input id="search-query" name="q" placeholder="Try ‘a gentle book about the ocean’" required><select id="search-box" aria-label="Filter by box"><option value="">Every box</option></select><button class="button button-primary" type="submit">Search</button></form>
+        <div class="search-note" id="search-note">Browse the live local catalog or describe what you want to read.</div>
+        <div class="book-list" id="book-list" aria-live="polite"></div>
+      </section>
+
+      <section class="section scanner" id="scanner">
+        <div class="scanner-copy"><p class="eyebrow">GPT-5.6 assisted, human decided</p><h2>Turn a cover into a reviewed book record.</h2><p>The image is temporary. GPT-5.6 proposes the fields; you correct them and choose the box. Nothing enters the catalog until you confirm it.</p><ol><li>Select a destination box</li><li>Photograph or upload a cover</li><li>Review, correct, then confirm</li></ol></div>
+        <form class="scanner-card" id="scan-form">
+          <label>Destination box<select id="scan-box" required><option value="">Choose a box</option></select></label>
+          <label class="drop-zone" for="scan-image"><span class="drop-icon">⌁</span><strong>Choose a cover photo</strong><small>JPEG, PNG, or WebP · up to 10 MiB</small><input id="scan-image" type="file" accept="image/jpeg,image/png,image/webp" required></label>
+          <button class="button button-primary" type="submit">Prepare candidate</button><p class="form-status" id="scan-status"></p>
+        </form>
+      </section>
+
+      <section class="section network-note"><div><p class="eyebrow">Independent and connected</p><h2>Your domain. Your database.<br>One compatible doorway.</h2></div><p>This node keeps working when Central or OpenAI is unavailable. Its public OpenAPI reads let LLL Central show current public boxes and books without copying them.</p></section>
+    </main>
+
+    <footer><div class="brand brand-footer"><span class="brand-mark">L</span><span><strong>Little Green Library</strong><small>Built through the ICM learning path.</small></span></div><p>Own-domain application · LLL-compatible public API · local-first data</p></footer>
+
+    <dialog id="access-dialog"><form method="dialog" class="dialog-card" id="access-form"><button class="dialog-close" value="cancel" aria-label="Close">×</button><p class="eyebrow">Local management realm</p><h3>Operator access</h3><p>This token belongs only to this node. Central credentials are never accepted here.</p><label>Operator token<input id="operator-token" type="password" autocomplete="current-password" required></label><button class="button button-primary" value="default">Save on this device</button></form></dialog>
+
+    <dialog id="box-dialog"><form method="dialog" class="dialog-card data-form" id="box-form"><button class="dialog-close" value="cancel" aria-label="Close">×</button><p class="eyebrow">Create locally</p><h3>Add a library box</h3><label>Name<input name="name" required></label><label>Description<textarea name="description"></textarea></label><label>Location label<input name="location" placeholder="North entrance, community garden…"></label><div class="form-pair"><label>Latitude<input name="latitude" type="number" step="any" min="-90" max="90"></label><label>Longitude<input name="longitude" type="number" step="any" min="-180" max="180"></label></div><label>Visibility<select name="visibility"><option value="public">Public</option><option value="private">Private</option></select></label><button class="button button-primary" value="default">Create box</button><p class="form-status"></p></form></dialog>
+
+    <dialog id="book-dialog"><form method="dialog" class="dialog-card data-form" id="book-form"><button class="dialog-close" value="cancel" aria-label="Close">×</button><p class="eyebrow">Manual path</p><h3>Add a book</h3><label>Box<select name="boxId" class="box-options" required></select></label><label>Title<input name="title" required></label><label>Author<input name="author" required></label><div class="form-pair"><label>ISBN<input name="isbn"></label><label>Genre<input name="genre"></label></div><label>Description<textarea name="description"></textarea></label><div class="form-pair"><label>Language<input name="language" placeholder="en"></label><label>Condition<select name="condition"><option value="good">Good</option><option value="like_new">Like new</option><option value="fair">Fair</option><option value="poor">Poor</option><option value="new">New</option></select></label></div><button class="button button-primary" value="default">Add book</button><p class="form-status"></p></form></dialog>
+
+    <dialog id="candidate-dialog"><form method="dialog" class="dialog-card data-form" id="candidate-form"><button class="dialog-close" value="cancel" aria-label="Close">×</button><p class="eyebrow">Review required</p><h3>Check the proposed record</h3><input name="candidateId" type="hidden"><input name="boxId" type="hidden"><label>Title<input name="title" required></label><label>Author<input name="author" required></label><div class="form-pair"><label>ISBN<input name="isbn"></label><label>Genre<input name="genre"></label></div><label>Description<textarea name="description"></textarea></label><div class="form-pair"><label>Language<input name="language"></label><label>Condition<input name="condition"></label></div><div class="dialog-actions"><button class="button button-danger" id="reject-candidate" type="button">Reject</button><button class="button button-primary" value="default">Confirm into box</button></div><p class="form-status"></p></form></dialog>
+
+    <template id="empty-template"><div class="empty-state"><span>⌂</span><h3>Nothing here yet</h3><p>Start with a box, then help a book find its next reader.</p></div></template>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="/assets/app.js"></script>
+  </body>
+</html>

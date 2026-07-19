@@ -25,6 +25,15 @@ paths:
                   database: { type: string }
                   vector: { type: string }
                   openai: { type: string }
+  /api/meta:
+    get:
+      operationId: getNodeMetadata
+      responses:
+        "200":
+          description: Node identity and pinned compatibility profile.
+          content:
+            application/json:
+              schema: { type: object }
   /api/boxes:
     get:
       operationId: listBoxes
@@ -103,6 +112,15 @@ paths:
         "200":
           description: Semantic, keyword, or fallback results.
   /api/manage/boxes:
+    get:
+      operationId: listManagedBoxes
+      security: [{ operatorToken: [] }]
+      responses:
+        "200":
+          description: All boxes visible to the local operator.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PagedBoxes" }
     post:
       operationId: createBox
       security: [{ operatorToken: [] }]
@@ -122,6 +140,15 @@ paths:
         "204": { description: Empty box deleted. }
         "409": { description: Box contains books. }
   /api/manage/books:
+    get:
+      operationId: listManagedBooks
+      security: [{ operatorToken: [] }]
+      responses:
+        "200":
+          description: All books visible to the local operator.
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/PagedBooks" }
     post:
       operationId: createBook
       security: [{ operatorToken: [] }]
@@ -138,6 +165,13 @@ paths:
       security: [{ operatorToken: [] }]
       responses:
         "204": { description: Book and vector linkage deleted. }
+  /api/manage/demo/seed:
+    post:
+      operationId: seedDemoLibrary
+      security: [{ operatorToken: [] }]
+      responses:
+        "200":
+          description: Idempotently creates the local judge-demo boxes and books.
   /api/manage/candidates/analyze:
     post:
       operationId: analyzeBookImage

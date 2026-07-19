@@ -107,6 +107,8 @@ Freeze behavior before implementation and prove the datastore supports CRUD, rev
 
 ## Phase 1.5B: Working application and ChatGPT capability
 
+Status: IMPLEMENTED locally on `phase/01.5b-working-application`; deployment evidence remains Phase 1.5C.
+
 ### Goal
 
 Build the complete node and unique boxes UX, then expose its services safely through ChatGPT.

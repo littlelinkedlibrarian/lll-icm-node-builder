@@ -1,10 +1,12 @@
 import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
+import { readFileSync } from "node:fs";
 import type { DatabaseSync } from "node:sqlite";
 import type { AppConfig } from "../config.js";
 import type { Book, Box } from "../domain/model.js";
 import { CandidateService, DomainError, SearchService, candidateFields, limit, page, validateBook, validateBox } from "../application/services.js";
 import { readiness } from "../db/database.js";
 import { SqliteStore } from "../db/store.js";
+import { handleMcpRequest } from "../mcp/server.js";
 import type { Embedder, VisionExtractor } from "../ports/index.js";
 
 type Id = { id: string };
@@ -50,6 +52,28 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
     return reply.code(500).send({ error: "internal_error", message: "The node could not complete the request" });
   });
 
+  const web = {
+    html: readFileSync(new URL("../../public/index.html", import.meta.url), "utf8"),
+    css: readFileSync(new URL("../../public/styles.css", import.meta.url), "utf8"),
+    js: readFileSync(new URL("../../public/app.js", import.meta.url), "utf8")
+  };
+  app.get("/", async (_request, reply) => reply.type("text/html; charset=utf-8").send(web.html));
+  app.get("/assets/styles.css", async (_request, reply) => reply.type("text/css; charset=utf-8").send(web.css));
+  app.get("/assets/app.js", async (_request, reply) => reply.type("text/javascript; charset=utf-8").send(web.js));
+  app.get("/api/meta", async () => ({ name: input.config.nodeName, publicBaseUrl: input.config.publicBaseUrl.href, compatibilityVersion: "0.1.0" }));
+  app.options("/mcp", async (_request, reply) => reply.headers({
+    "access-control-allow-origin": "*", "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
+    "access-control-allow-headers": "authorization, content-type, mcp-protocol-version, mcp-session-id"
+  }).code(204).send());
+  app.route({ method: ["GET", "POST", "DELETE"], url: "/mcp", preHandler: auth, handler: async (request, reply) => {
+    reply.hijack();
+    reply.raw.setHeader("Access-Control-Allow-Origin", "*");
+    await handleMcpRequest(request.raw, reply.raw, request.body, {
+      store: input.store, publicBaseUrl: input.config.publicBaseUrl,
+      ...(input.vision ? { vision: input.vision } : {}), ...(input.embedder ? { embedder: input.embedder } : {})
+    });
+  } });
+
   const compatibleBox = (box: Box) => ({
     id: box.id,
     name: box.name,
@@ -88,6 +112,13 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
     return value ? compatibleBook(value) : reply.code(404).send({ error: "not_found", message: "Book not found" });
   });
 
+  app.get("/api/manage/boxes", { preHandler: auth }, async (request) => {
+    const q = request.query as Paging; return envelope(input.store.listBoxes(page(q.page), limit(q.limit), false));
+  });
+  app.get("/api/manage/books", { preHandler: auth }, async (request) => {
+    const q = request.query as Paging; return envelope(input.store.listBooks(page(q.page), limit(q.limit), undefined, false));
+  });
+
   app.post("/api/manage/boxes", { preHandler: auth }, async (request, reply) => {
     const body = request.body as Omit<Box, "id" | "createdAt" | "updatedAt">;
     validateBox(body); return reply.code(201).send(input.store.create(body));
@@ -123,6 +154,25 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
   });
   app.delete("/api/manage/books/:id", { preHandler: auth }, async (request, reply) => {
     return input.store.delete((request.params as Id).id) ? reply.code(204).send() : reply.code(404).send({ error: "not_found", message: "Book not found" });
+  });
+
+  app.post("/api/manage/demo/seed", { preHandler: auth }, async () => {
+    const fixtures = [
+      { name: "Garden Gate Library", description: "Stories beside the community herb garden.", location: "Garden north entrance", latitude: 39.7392, longitude: -104.9903 },
+      { name: "Happy Corner Box", description: "Picture books, small adventures, and neighborhood favorites.", location: "Happy Corner", latitude: 39.7421, longitude: -104.9821 }
+    ];
+    const boxes = fixtures.map(fixture => input.store.listBoxes(1, 50).data.find(box => box.name === fixture.name) ?? input.store.create({ ...fixture, visibility: "public" as const }));
+    const books = [
+      { boxId: boxes[0]!.id, title: "The Sea Around Us", author: "Rachel Carson", genre: "Nature", description: "A lyrical exploration of ocean life." },
+      { boxId: boxes[0]!.id, title: "Braiding Sweetgrass", author: "Robin Wall Kimmerer", genre: "Nature", description: "Indigenous wisdom and the teachings of plants." },
+      { boxId: boxes[1]!.id, title: "The Little Prince", author: "Antoine de Saint-Exupéry", genre: "Fiction", description: "A small traveler asks the questions adults forget." }
+    ];
+    for (const fixture of books) {
+      if (input.store.listBooks(1, 50).data.some(book => book.title === fixture.title && book.boxId === fixture.boxId)) continue;
+      const book = input.store.create({ ...fixture, isbn: null, language: "en", condition: "good", visibility: "public", aiProvenance: null });
+      try { await search.index(book); } catch { /* demo remains available through keyword search */ }
+    }
+    return { boxes: input.store.listBoxes(1, 50).total, books: input.store.listBooks(1, 50).total };
   });
 
   app.post("/api/manage/candidates/analyze", { preHandler: auth, bodyLimit: 14 * 1024 * 1024 }, async (request, reply) => {
