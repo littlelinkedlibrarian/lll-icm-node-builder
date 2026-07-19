@@ -28,6 +28,18 @@ Authentication, AI, vectors, public deployment, and federation are capability ch
 - Route agent writes through normal permission paths.
 - Treat registry and mesh discovery as provider choices.
 
+## Bibliographic identity and scan history
+
+Treat the uploaded Books image as evidence and a private activity parent, not as the book cover. Persist it before extraction when retention is approved; connect every proposed, confirmed, rejected, or failed child result to that activity. Preserve the ability to inspect and zoom the original without making it public.
+
+An ISBN identifies an edition, while title and author commonly identify a work with many editions. Accept a model ISBN only when visibly supported and checksum-valid. Otherwise request bounded edition proposals from the approved bibliographic adapter and require a human selection. Store provider identifiers, retrieval time, source URL, selected fields, and attribution. Cache low-volume lookups and keep manual confirmation available during provider failure.
+
+Reference provider documentation:
+
+- https://openlibrary.org/developers/api
+- https://openlibrary.org/dev/docs/api/search
+- https://openlibrary.org/dev/docs/api/covers
+
 ## Assorted Things and other approved items
 
 An Assorted Things capture is box-scoped photo history, not a book or book journey. Preserve the original, time, box, human label or note, human-authored fields, and reviewer decision. Default to no AI object recognition: the photo exists so neighbors can look for themselves, while only human-confirmed metadata becomes public.

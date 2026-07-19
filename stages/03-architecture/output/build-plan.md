@@ -117,3 +117,22 @@ Final evidence: a fresh clone can install, migrate, start, execute CRUD, produce
 - [ ] Add lightweight append-only placed/taken/returned/moved events if hackathon time remains.
 
 Checkpoint: human-test a photo containing at least three spines, confirm and reject different candidates, confirm one Assorted Thing, and verify its public zoom view appears only inside the selected box.
+
+## Phase 1.5E: metadata, retained scan images, and activity history
+
+- [ ] Add migration 003 with `scan_activities` as the image-owning parent, `media_assets`, candidate foreign keys, bounded metadata proposals, selected metadata provenance, and append-only activity events.
+- [ ] Add an atomic content-addressed filesystem media adapter, mounted media directory, original plus thumbnail assets, and a future S3 seam.
+- [ ] Save the Books image and activity before OpenAI extraction; expose retryable processing and failed states without losing the upload.
+- [ ] Validate visible ISBN-10 and ISBN-13 checksums; otherwise search title, author, and optional language through a bibliographic adapter.
+- [ ] Implement a low-volume Open Library adapter with application identification, bounded caching, timeouts, attribution, and deterministic fake tests.
+- [ ] Present edition choices rather than silently assigning an ISBN; allow confirmation without an external match.
+- [ ] Persist selected edition metadata and cover provenance locally; use cover thumbnails for books and a placeholder when absent.
+- [ ] Add protected activity list/detail/image routes and a timeline UI grouped by parent scan image.
+- [ ] Add zoom, pan, keyboard controls, and full-resolution access inside the activity detail modal.
+- [ ] Show all child results with pending, confirmed, rejected, or failed state and links to canonical books.
+- [ ] Define image retention/deletion so removing historical media never removes confirmed books or audit facts.
+- [ ] Back up and restore SQLite plus the media directory as one versioned consistency boundary.
+- [ ] Extend MCP with activity list/detail and safe metadata-selection tools through the normal operator realm.
+- [ ] Test upload-before-AI persistence, failed/retried scans, multiple candidates, ambiguous editions, invalid ISBNs, no-match confirmation, cover failure, authorization, and backup/restore.
+
+Checkpoint: upload one three-spine photo, review it once, resolve at least one edition, confirm and reject different results, then reopen the parent image from Activity History and zoom while seeing every child outcome.

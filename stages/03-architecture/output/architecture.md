@@ -145,3 +145,13 @@ Migration 002 adds `assorted_captures`, separate from `scan_candidates` and `boo
 Images and metadata remain behind the local operator realm until human confirmation and outside the six public LLL compatibility reads. OpenAI remains available only to the separately bounded book scanner and embedding adapter.
 
 The UI uses code-native CSS tokens with Garden, Terminal, and Cosmic themes and browser-local persistence. Theme state is a presentation adapter concern and does not enter SQLite or public contracts.
+
+## Phase 1.5E scan activity and metadata amendment
+
+Books scanning becomes a durable aggregate rather than a request that only leaves candidates behind. Migration 003 introduces `scan_activities` with box, lifecycle state, protected media reference, hash, dimensions when known, provenance, error summary, and timestamps. A `media_assets` record owns storage key, MIME type, byte size, dimensions, hash, derivative relationship, and retention state. `scan_candidates.activity_id` makes every result a child of its source image. New append-only `scan_activity_events` preserve processing and human decisions. Existing candidates remain readable; new writes require an activity parent.
+
+A bounded `book_metadata_proposals` table stores temporary edition choices per candidate, including provider, work and edition identifiers, normalized ISBN-10/13, language, publisher/date, cover identifier, source URL, retrieval time, match inputs, and selection state. The canonical book stores only human-selected metadata plus provenance. Provider responses are not treated as canonical data.
+
+The media port owns original bytes. The live reference uses atomic, content-addressed files under a mounted node media directory plus a generated thumbnail; SQLite stores asset metadata and relationships rather than growing a scan-image BLOB. The port permits an S3 adapter later, and backup/restore treats the database and media directory as one consistency boundary. Activity image routes require the operator realm, support cache-safe binary reads, and never join the LLL Central compatibility surface. The activity detail UI uses the original as the visual parent with zoom and pan; candidate rows show their evidence, metadata selection, decision, and resulting book link.
+
+ISBN resolution is edition-aware. A visible ISBN is normalized and checksum-validated before exact lookup. Otherwise the bibliographic port searches by confirmed title, author, and optional language and returns several editions. No confidence score authorizes automatic edition selection. Open Library is the reference low-volume adapter; it receives text metadata only, uses an identifying User-Agent, caches results, and degrades to confirmation without enrichment.

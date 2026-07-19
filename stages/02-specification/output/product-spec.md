@@ -175,6 +175,23 @@ Garden is the accessible warm default. Terminal and Cosmic are alternate code-na
 4. The browser presents every candidate in one review modal. Complete candidates are selected by default; the operator edits only incomplete or incorrect rows and may reject any result.
 5. One final action confirms selected candidates independently and rejects unchecked candidates; MCP returns the same bounded batch and preserves the human gate.
 
-### Deferred personalization slices
+## Phase 1.5E approved amendment
 
-Box photos, book covers, approved AI-written introductions, and lightweight placed/taken/returned/moved journey events follow this inventory foundation. Formal patron accounts, due dates, holds, fines, and notifications remain out of scope.
+### Scan activity as the parent record
+
+1. Every Books upload first creates a durable, private scan activity containing its box, original image, MIME type, SHA-256, timestamps, lifecycle state, and model provenance. The activity exists even when extraction or enrichment fails.
+2. Scan candidates belong to the activity and retain image order, extracted evidence, edits, final decision, and any resulting canonical book ID. The activity is the parent; candidates, metadata proposals, and audit events are children.
+3. Activity history shows one thumbnail per uploaded image. Opening an activity displays a zoomable and pannable original with every detected result and its pending, confirmed, rejected, or failed state. Confirmed results link to the created books.
+4. Original scan images remain operator-private by default and never enter the Central-compatible reads. Retention and deletion are explicit owner policy; deleting a historical image must not delete confirmed books.
+
+### Edition metadata and ISBN resolution
+
+1. A visibly readable ISBN is evidence, not a model invention. Normalize it, validate its ISBN-10 or ISBN-13 checksum, and use it for exact bibliographic lookup.
+2. When ISBN is absent, query the bibliographic adapter with confirmed title, author, and optional language. Return a small list of edition proposals containing source IDs, ISBNs, publisher/date, language, subjects, description, and cover identifiers.
+3. Never silently choose an edition from title and author alone. The operator selects a proposal, chooses a different edition, or confirms the book without an ISBN.
+4. The reference adapter uses low-volume Open Library Search and Covers APIs, identifies the application, caches bounded results, records retrieval time and source attribution, and does not send the scan image.
+5. Selected metadata is copied into canonical local fields with provenance. External outages never block manual confirmation; covers use a local placeholder when unavailable.
+
+### Activity events
+
+Append-only events record upload, extraction start/success/failure, candidate edit, metadata proposal/selection, confirm/reject, book creation, and permitted image deletion. Formal checkout, patron accounts, due dates, holds, fines, and notifications remain out of scope.
