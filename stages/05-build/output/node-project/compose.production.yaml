@@ -3,7 +3,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: lll-happybox:phase-01.5e
+    image: lll-happybox:phase-01.5f
     container_name: lll-happybox
     restart: unless-stopped
     env_file:
