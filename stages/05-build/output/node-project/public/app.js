@@ -1,4 +1,4 @@
-const state = { boxes: [], books: [], captures: [], activities: [], captureImages: new Map(), activityImages: new Map(), activityZoom: 1, activeBoxId: null, inventoryThings: [], candidateQueue: [], scanKind: "books", token: localStorage.getItem("lll.operatorToken") ?? "", candidate: null, theme: localStorage.getItem("lll.theme") ?? "garden" };
+const state = { boxes: [], books: [], visibleBooks: [], captures: [], activities: [], captureImages: new Map(), activityImages: new Map(), activityZoom: 1, activeBoxId: null, inventoryThings: [], candidateQueue: [], scanKind: "books", token: localStorage.getItem("lll.operatorToken") ?? "", candidate: null, theme: localStorage.getItem("lll.theme") ?? "garden" };
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const empty = () => $("#empty-template").content.cloneNode(true);
@@ -56,15 +56,19 @@ async function loadManaged() {
 }
 
 function updateAccess() {
-  $("#operator-button").textContent = state.token ? "Operator connected" : "Operator access";
+  $("#operator-button").textContent = state.token ? "Operator menu" : "Operator access";
   $("#operator-button").classList.toggle("button-primary", Boolean(state.token));
   $("#activity-history").classList.toggle("hidden", !state.token);
+  $("#operator-token-label").classList.toggle("hidden", Boolean(state.token));
+  $("#operator-connect").classList.toggle("hidden", Boolean(state.token));
+  $("#operator-logout").classList.toggle("hidden", !state.token);
+  $("#access-status").textContent = state.token ? "Operator access is active on this device. You can scan, review, add, edit, and delete local inventory." : "Guest mode can browse public boxes, book details, search, maps, and confirmed Assorted Things. Connect as an operator to manage this node.";
 }
 
 function boxCard(box) {
-  const article = document.createElement("article"); article.className = "box-card";
+  const article = document.createElement("article"); article.className = "box-card"; article.dataset.openBox = box.id; article.tabIndex = 0; article.setAttribute("role", "button"); article.setAttribute("aria-label", "Open " + box.name);
   const count = box.bookCount ?? state.books.filter(book => (book.boxId ?? book.libraryBoxId) === box.id).length;
-  article.innerHTML = `<div class="box-card-art"></div><div class="box-card-body"><p class="eyebrow">${box.visibility === "private" ? "Private box" : "Public box"}</p><h3>${escapeHtml(box.name)}</h3><p>${escapeHtml(box.description || "A little shelf waiting for its next story.")}</p><div class="box-meta"><span>${escapeHtml(box.location || "Location not published")}</span><strong>${count} book${count === 1 ? "" : "s"}</strong></div><button class="button button-quiet inventory-button" data-open-box="${box.id}" type="button">Explore this box</button>${state.token ? `<div class="book-actions"><button class="icon-button" data-edit-box="${box.id}" aria-label="Edit ${escapeHtml(box.name)}">✎</button><button class="icon-button" data-delete-box="${box.id}" aria-label="Delete ${escapeHtml(box.name)}">×</button></div>` : ""}</div>`;
+  article.innerHTML = `<div class="box-card-art"></div><div class="box-card-body"><p class="eyebrow">${box.visibility === "private" ? "Private box" : "Public box"}</p><h3>${escapeHtml(box.name)}</h3><p>${escapeHtml(box.description || "A little shelf waiting for its next story.")}</p><div class="box-meta"><span>${escapeHtml(box.location || "Location not published")}</span><strong>${count} book${count === 1 ? "" : "s"}</strong></div>${state.token ? `<div class="book-actions"><button class="icon-button" data-edit-box="${box.id}" aria-label="Edit ${escapeHtml(box.name)}">✎</button><button class="icon-button" data-delete-box="${box.id}" aria-label="Delete ${escapeHtml(box.name)}">×</button></div>` : ""}</div>`;
   return article;
 }
 
@@ -81,11 +85,11 @@ function renderBoxes() {
 }
 
 function renderBooks(books, mode) {
-  const list = $("#book-list"); list.replaceChildren();
+  state.visibleBooks = books; const list = $("#book-list"); list.replaceChildren();
   if (!books.length) list.append(empty());
   books.forEach(book => {
     const boxId = book.boxId ?? book.libraryBoxId; const box = state.boxes.find(item => item.id === boxId);
-    const article = document.createElement("article"); article.className = "book-card";
+    const article = document.createElement("article"); article.className = "book-card"; article.dataset.openBook = book.id; article.tabIndex = 0; article.setAttribute("role", "button"); article.setAttribute("aria-label", "View details for " + book.title);
     const visual = book.coverUrl ? `<img class="book-cover" src="${escapeHtml(book.coverUrl)}" alt="Cover of ${escapeHtml(book.title)}" loading="lazy">` : `<div class="book-spine" aria-hidden="true"></div>`;
     article.innerHTML = `${visual}<div><h3>${escapeHtml(book.title)}</h3><p>${escapeHtml(book.author)} · ${escapeHtml(box?.name ?? "Unboxed")}${book.genre ? ` · ${escapeHtml(book.genre)}` : ""}</p></div>${state.token ? `<div class="book-actions"><button class="icon-button" data-edit-book="${book.id}" aria-label="Edit ${escapeHtml(book.title)}">✎</button><button class="icon-button" data-delete-book="${book.id}" aria-label="Delete ${escapeHtml(book.title)}">×</button></div>` : ""}`;
     list.append(article);
@@ -115,8 +119,9 @@ async function renderActivities() {
 
 function setActivityZoom(next) {
   state.activityZoom = Math.min(4, Math.max(.5, next));
-  $("#activity-image").style.transform = `scale(${state.activityZoom})`;
-  $("[data-activity-zoom=reset]").textContent = Math.round(state.activityZoom * 100) + "%";
+  const image = document.getElementById("activity-image"), viewer = document.getElementById("activity-viewer"), reset = document.querySelector("[data-activity-zoom=reset]");
+  image.style.transform = "none"; image.style.maxWidth = state.activityZoom === 1 ? "100%" : "none"; image.style.maxHeight = state.activityZoom === 1 ? "65vh" : "none"; image.style.width = state.activityZoom === 1 ? "auto" : (state.activityZoom * 100) + "%"; image.style.height = "auto";
+  reset.textContent = Math.round(state.activityZoom * 100) + "%"; if (state.activityZoom === 1) viewer.scrollTo({ top: 0, left: 0 });
 }
 
 async function openActivity(id) {
@@ -167,7 +172,7 @@ async function openBoxInventory(id) {
   $("#inventory-thing-count").textContent = String(state.inventoryThings.length);
   const bookList = $("#inventory-books"); bookList.replaceChildren();
   if (!books.length) bookList.append(empty());
-  books.forEach(book => { const article = document.createElement("article"); article.className = "book-card"; const visual = book.coverUrl ? "<img class=\"book-cover\" src=\"" + escapeHtml(book.coverUrl) + "\" alt=\"Cover of " + escapeHtml(book.title) + "\" loading=\"lazy\">" : "<div class=\"book-spine\" aria-hidden=\"true\"></div>"; article.innerHTML = visual + "<div><h3>" + escapeHtml(book.title) + "</h3><p>" + escapeHtml(book.author) + (book.genre ? " · " + escapeHtml(book.genre) : "") + "</p></div>"; bookList.append(article); });
+  books.forEach(book => { const article = document.createElement("article"); article.className = "book-card"; article.dataset.openBook = book.id; article.tabIndex = 0; article.setAttribute("role", "button"); article.setAttribute("aria-label", "View details for " + book.title); const visual = book.coverUrl ? "<img class=\"book-cover\" src=\"" + escapeHtml(book.coverUrl) + "\" alt=\"Cover of " + escapeHtml(book.title) + "\" loading=\"lazy\">" : "<div class=\"book-spine\" aria-hidden=\"true\"></div>"; article.innerHTML = visual + "<div><h3>" + escapeHtml(book.title) + "</h3><p>" + escapeHtml(book.author) + (book.genre ? " · " + escapeHtml(book.genre) : "") + "</p></div>"; bookList.append(article); });
   const thingGrid = $("#inventory-things"); thingGrid.replaceChildren();
   if (!state.inventoryThings.length) thingGrid.append(empty());
   for (const item of state.inventoryThings) {
@@ -191,6 +196,23 @@ function openThing(id) {
   openDialog("thing-dialog");
 }
 
+function openBookDetails(id) {
+  const book = state.visibleBooks.find(item => item.id === id) || state.books.find(item => item.id === id); if (!book) return;
+  const boxId = book.boxId ?? book.libraryBoxId; const box = state.boxes.find(item => item.id === boxId);
+  const inventoryDialog = document.getElementById("box-inventory-dialog"); if (inventoryDialog.open) inventoryDialog.close();
+  const cover = document.getElementById("book-details-cover"); cover.replaceChildren();
+  if (book.coverUrl) { const image = document.createElement("img"); image.src = book.coverUrl; image.alt = "Cover of " + book.title; cover.append(image); }
+  else { const spine = document.createElement("div"); spine.className = "book-details-placeholder"; spine.textContent = "No cover available"; cover.append(spine); }
+  document.getElementById("book-details-box").textContent = box?.name || "Unboxed book";
+  document.getElementById("book-details-title").textContent = book.title;
+  document.getElementById("book-details-author").textContent = "by " + book.author;
+  document.getElementById("book-details-description").textContent = book.description || "No description has been added yet.";
+  const metadata = document.getElementById("book-details-metadata"); metadata.replaceChildren();
+  [["ISBN", book.isbn], ["Genre", book.genre], ["Language", book.language], ["Publication year", book.publicationYear], ["Condition", book.condition], ["Cataloged", book.aiExtracted || book.aiProvenance ? "AI-assisted, human confirmed" : "Manual entry"], ["Added", book.createdAt ? new Date(book.createdAt).toLocaleDateString() : null]].filter(([, value]) => value !== null && value !== undefined && value !== "").forEach(([label, value]) => { const term = document.createElement("dt"); term.textContent = String(label); const detail = document.createElement("dd"); detail.textContent = String(value).replaceAll("_", " "); metadata.append(term, detail); });
+  const source = document.getElementById("book-details-source"), sourceUrl = book.metadataProvenance?.sourceUrl; source.classList.toggle("hidden", !sourceUrl); if (sourceUrl) source.href = sourceUrl;
+  openDialog("book-details-dialog");
+}
+
 function populateBoxes() {
   const options = `<option value="">Choose a box</option>${state.boxes.map(box => `<option value="${box.id}">${escapeHtml(box.name)}</option>`).join("")}`;
   $("#scan-box").innerHTML = options; $("#search-box").innerHTML = `<option value="">Every box</option>${options.replace('<option value="">Choose a box</option>', "")}`;
@@ -200,13 +222,11 @@ function populateBoxes() {
 function openDialog(id) { const dialog = document.getElementById(id); if (dialog && !dialog.open) dialog.showModal(); }
 function requireOperator(action) { if (state.token) return action(); openDialog("access-dialog"); }
 
-$("#theme-select").addEventListener("change", event => setTheme(event.currentTarget.value));
+document.getElementById("theme-select").addEventListener("change", event => setTheme(event.currentTarget.value));
 
-$("#operator-button").addEventListener("click", () => openDialog("access-dialog"));
-$("#access-form").addEventListener("submit", async event => {
-  event.preventDefault(); state.token = $("#operator-token").value; localStorage.setItem("lll.operatorToken", state.token);
-  try { await loadManaged(); $("#access-dialog").close(); toast("Operator access connected"); } catch (error) { toast(error.message); }
-});
+document.getElementById("operator-button").addEventListener("click", () => { document.getElementById("operator-token").value = ""; updateAccess(); openDialog("access-dialog"); });
+document.getElementById("access-form").addEventListener("submit", async event => { event.preventDefault(); const token = document.getElementById("operator-token").value.trim(); if (!token) { toast("Enter the operator token"); return; } state.token = token; localStorage.setItem("lll.operatorToken", state.token); try { await loadManaged(); document.getElementById("access-dialog").close(); toast("Operator access connected"); } catch (error) { toast(error.message); } });
+document.getElementById("operator-logout").addEventListener("click", async () => { state.token = ""; localStorage.removeItem("lll.operatorToken"); document.getElementById("operator-token").value = ""; document.getElementById("access-dialog").close(); await load(); toast("Logged out — public browsing remains available"); });
 
 $$('[data-dialog]').forEach(button => button.addEventListener("click", () => requireOperator(() => { const form = document.getElementById(button.dataset.dialog.replace("-dialog", "-form")); form?.reset(); if (form) delete form.dataset.editId; openDialog(button.dataset.dialog); })));
 $$('.dialog-close').forEach(button => button.addEventListener("click", event => { event.preventDefault(); button.closest("dialog").close(); }));
@@ -223,8 +243,9 @@ $("#book-form").addEventListener("submit", async event => {
 });
 
 document.addEventListener("click", async event => {
-  const target = event.target.closest("button"); if (!target) return;
+  const target = event.target.closest("button,[data-open-box],[data-open-book]"); if (!target) return;
   if (target.dataset.openBox) await openBoxInventory(target.dataset.openBox);
+  if (target.dataset.openBook) openBookDetails(target.dataset.openBook);
   if (target.dataset.openActivity) await openActivity(target.dataset.openActivity);
   if (target.dataset.activityZoom) setActivityZoom(target.dataset.activityZoom === "in" ? state.activityZoom + .25 : target.dataset.activityZoom === "out" ? state.activityZoom - .25 : 1);
   if (target.dataset.viewThing) openThing(target.dataset.viewThing);
@@ -236,6 +257,26 @@ document.addEventListener("click", async event => {
   if (target.dataset.deleteBook && confirm("Delete this book and its search vector?")) { try { await api(`/api/manage/books/${target.dataset.deleteBook}`, { method: "DELETE" }); await loadManaged(); toast("Book deleted"); } catch (error) { toast(error.message); } }
 });
 
+document.addEventListener("keydown", async event => {
+  if (event.key !== "Enter" && event.key !== " ") return;
+  const target = event.target.closest("[data-open-box],[data-open-book]"); if (!target || event.target.closest("button")) return;
+  event.preventDefault(); if (target.dataset.openBox) await openBoxInventory(target.dataset.openBox); else if (target.dataset.openBook) openBookDetails(target.dataset.openBook);
+});
+
+function clearFileSelection(prefix) {
+  const panel = document.getElementById(prefix + "-selection"), image = document.getElementById(prefix + "-selection-image");
+  if (panel.dataset.objectUrl) URL.revokeObjectURL(panel.dataset.objectUrl); panel.dataset.objectUrl = ""; image.removeAttribute("src"); panel.classList.add("hidden");
+}
+function showFileSelection(file, prefix) {
+  clearFileSelection(prefix); if (!file) return;
+  const panel = document.getElementById(prefix + "-selection"), url = URL.createObjectURL(file); panel.dataset.objectUrl = url;
+  document.getElementById(prefix + "-selection-image").src = url; document.getElementById(prefix + "-selection-name").textContent = "1 image selected — " + file.name;
+  document.getElementById(prefix + "-selection-meta").textContent = (file.type || "image") + " · " + Math.max(1, Math.round(file.size / 1024)) + " KiB"; panel.classList.remove("hidden");
+}
+function bindFileSelection(firstId, secondId, prefix) {
+  [firstId, secondId].forEach((id, index, ids) => document.getElementById(id).addEventListener("change", event => { const other = document.getElementById(ids[index === 0 ? 1 : 0]); if (event.currentTarget.files[0]) other.value = ""; showFileSelection(event.currentTarget.files[0], prefix); }));
+}
+bindFileSelection("scan-camera", "scan-image", "scan"); bindFileSelection("assorted-camera", "assorted-image", "assorted");
 
 document.querySelector("#assorted-form").addEventListener("submit", async event => {
   event.preventDefault(); return requireOperator(async () => {
@@ -244,7 +285,7 @@ document.querySelector("#assorted-form").addEventListener("submit", async event 
     try {
       const imageBase64 = await fileBase64(file);
       await api("/api/manage/assorted/capture", { method: "POST", body: { boxId: document.querySelector("#scan-box").value, mimeType: file.type, imageBase64, title: document.querySelector("#assorted-title").value, note: document.querySelector("#assorted-note").value } });
-      event.currentTarget.reset(); status.textContent = ""; await loadManaged(); toast("Photo saved for human review");
+      event.currentTarget.reset(); clearFileSelection("assorted"); status.textContent = ""; await loadManaged(); toast("Photo saved for human review");
     } catch (error) { status.textContent = error.message; }
   });
 });
@@ -319,13 +360,13 @@ $("#candidate-batch-form").addEventListener("submit", async event => {
       }
       else await api("/api/manage/candidates/" + candidate.id + "/reject", { method: "POST", body: {} });
     }
-    state.candidateQueue = []; form.closest("dialog").close(); await loadManaged(); toast(selected.length + " reviewed book" + (selected.length === 1 ? "" : "s") + " added");
+    state.candidateQueue = []; document.getElementById("scan-form").reset(); clearFileSelection("scan"); form.closest("dialog").close(); await loadManaged(); toast(selected.length + " reviewed book" + (selected.length === 1 ? "" : "s") + " added");
   } catch (error) { $(".form-status", form).textContent = error.message; }
 });
 
 async function rejectCandidateBatch() {
   for (const candidate of state.candidateQueue) { try { await api("/api/manage/candidates/" + candidate.id + "/reject", { method: "POST", body: {} }); } catch {} }
-  state.candidateQueue = []; $("#candidate-batch-dialog").close(); toast("Book candidates rejected");
+  state.candidateQueue = []; document.getElementById("scan-form").reset(); clearFileSelection("scan"); document.getElementById("candidate-batch-dialog").close(); toast("Book candidates rejected");
 }
 
 $("#reject-batch").addEventListener("click", rejectCandidateBatch);

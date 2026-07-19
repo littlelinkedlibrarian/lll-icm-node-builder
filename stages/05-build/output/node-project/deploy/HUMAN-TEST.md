@@ -18,13 +18,13 @@ Open the public URL, choose **Operator access**, paste the token, and connect.
 2. Open **Library boxes** and confirm **Happy Box** shows `66 Colon Ave, St. Augustine, FL 32084`.
 3. Confirm the seeded catalog contains three books across two boxes.
 4. Create a temporary box, edit its name/location, then delete it while empty.
-5. Add a manual book to Happy Box, edit or move it, search for it, and delete it.
-6. In **Scanner**, select **Books**, Happy Box, and a non-sensitive photo containing at least three visible book spines. On mobile, choose the camera when the browser offers it.
+5. Select Happy Box anywhere on its card, then select a book inside its inventory and verify the cover, description, ISBN, language, condition, publication year, and box appear in Book details. Add a manual book, edit or move it, search for it, and delete it.
+6. In **Scanner**, select **Books**, Happy Box, and a non-sensitive photo containing at least three visible book spines. Confirm a clearly bordered thumbnail, filename, type, and size appear before submission. On mobile, choose the camera when the browser offers it.
 7. Review every result in the single batch modal. Edit only incorrect extraction fields; choose an offered edition for one result, leave another as **no edition**, confirm at least two, and reject one. No edition should be selected automatically.
-8. Open **Activity History**, reopen that parent scan, and verify the original image, zoom controls, timeline, and all confirmed/rejected child outcomes.
+8. Open **Activity History**, reopen that parent scan, and verify the entire uncropped original image, zoom controls, timeline, and all confirmed/rejected child outcomes.
 9. Return to the catalog and verify confirmed books appear. A selected edition should show its cover when Open Library supplied one; unmatched books should use the spine placeholder.
 10. In **Scanner**, select **Assorted things**, capture a puzzle, card, art object, or trinket, and enter the human description yourself. Confirm it appears only inside Happy Box with a zoomable image; this path must not call OpenAI.
-11. Reload the page and confirm all completed writes and Activity History persist.
+11. Open **Operator menu**, log out on this device, and confirm public boxes, books, search, maps, book details, and confirmed Assorted Things still work while scanning, private history, and CRUD require operator access. Log back in, reload, and confirm all completed writes and Activity History persist.
 
 ## Boundaries worth checking
 

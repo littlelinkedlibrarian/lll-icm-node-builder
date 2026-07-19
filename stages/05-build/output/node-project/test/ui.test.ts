@@ -27,10 +27,18 @@ describe("branded browser application", () => {
     expect(home.body).toContain("candidate-batch-dialog");
     expect(home.body).toContain("activity-history");
     expect(home.body).toContain("activity-dialog");
+    expect(home.body).toContain("book-details-dialog");
+    expect(home.body).toContain("scan-selection");
+    expect(home.body).toContain("assorted-selection");
+    expect(home.body).toContain("operator-logout");
+    expect(home.body).toContain("Guests can browse public boxes, book details, search, maps, and confirmed Assorted Things");
     expect(home.body).toContain("Private scan evidence");
     expect(home.body).toContain("Add selected books");
     expect((await app.inject({ method: "GET", url: "/assets/app.js" })).body).toContain("metadata-selection");
     expect((await app.inject({ method: "GET", url: "/assets/app.js" })).body).toContain("setActivityZoom");
+    expect((await app.inject({ method: "GET", url: "/assets/app.js" })).body).toContain("openBookDetails");
+    expect((await app.inject({ method: "GET", url: "/assets/app.js" })).body).toContain("1 image selected");
+    expect((await app.inject({ method: "GET", url: "/assets/app.js" })).body).toContain("Logged out — public browsing remains available");
     expect(home.body).toContain("Save photo for human review");
     expect(home.body).toContain("data-scan-kind=\"books\"");
     expect(home.body).toContain("data-scan-kind=\"assorted\"");
