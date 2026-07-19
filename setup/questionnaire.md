@@ -12,6 +12,8 @@ Ask all questions in one pass. These configure the reusable builder, not one nod
 8. Who owns code, deployment accounts, domain or delegated subdomain, DNS, TLS, OpenAI usage, backups, exports, and stored data? Default: learner or their organization; record every LLL-hosted exception.
 9. Which accessibility, privacy, licensing, branding, or educational rules apply to every project? Default: accessible UI, least data, explicit consent, owner-selected license.
 10. What should the builder call its owner? Default: Learner.
-11. Should the node support box-scoped “Assorted Things” photos: omit them, store them for manual review, or add optional OpenAI metadata suggestions with human confirmation? Default: manual capture with optional OpenAI assistance.
+11. Should book scanning accept one cover only, several shelf spines as a review batch, or ask each run? Default: both single-cover and bounded multi-book batches.
+12. Should the node support box-scoped “Assorted Things” such as puzzles, note cards, art, and trinkets: omit them, keep them private, or publish human-confirmed items inside each box? Default: manual capture with optional OpenAI assistance; only confirmed items are public.
+13. Should books and Assorted Things share a destination-first scanner selector while retaining separate entities, prompts, review states, and routes? Default: yes.
 
 After answers, populate `_config/builder-profile.md`, show it for approval, and verify no placeholders remain.

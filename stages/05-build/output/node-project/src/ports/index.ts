@@ -24,7 +24,7 @@ export interface CandidateRepository {
   confirm(id: string, actor: string, idempotencyKey: string): { candidate: ScanCandidate; book: Book };
 }
 export interface VisionExtractor {
-  extract(image: { mimeType: string; bytes: Uint8Array }): Promise<{ fields: CandidateFields; provenance: Record<string, unknown> }>;
+  extract(image: { mimeType: string; bytes: Uint8Array }): Promise<{ candidates: CandidateFields[]; provenance: Record<string, unknown> }>;
 }
 export interface AssortedExtractor {
   extractAssorted(image: { mimeType: string; bytes: Uint8Array }): Promise<{ fields: AssortedFields; provenance: Record<string, unknown> }>;

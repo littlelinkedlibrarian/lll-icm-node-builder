@@ -67,6 +67,6 @@ The LLL domain references are original adaptations informed by the Little Linked
 
 MIT. See `LICENSE`.
 
-## Phase 1.5C reference experience
+## Phase 1.5D reference experience
 
-The checked-in reference run now includes a Happy Box seed for `66 Colon Ave, St. Augustine, FL 32084`, protected Assorted Things capture/review, and Garden, Terminal, and Cosmic themes. Assorted Things preserves manual box history before optional OpenAI enrichment and stays outside the LLL-compatible public reads.
+The checked-in reference run includes Happy Box at `66 Colon Ave, St. Augustine, FL 32084`, a destination-first scanner for Books or Assorted Things, and Garden, Terminal, and Cosmic themes. One cover or shelf image can create a bounded batch of independently reviewed book candidates. Confirmed puzzles, note cards, art, and trinkets appear as zoomable inventory inside their box; pending and rejected captures remain private and all Assorted Things stay outside the Central compatibility profile.

@@ -14,6 +14,13 @@ const candidateSchema = {
   }
 } as const;
 
+const scanBatchSchema = {
+  type: "object",
+  additionalProperties: false,
+  required: ["candidates"],
+  properties: { candidates: { type: "array", minItems: 1, maxItems: 15, items: candidateSchema } }
+} as const;
+
 const assortedSchema = {
   type: "object", additionalProperties: false,
   required: ["title", "category", "description", "tags", "condition", "quantity", "unknowns", "reviewQuestions"],
@@ -29,25 +36,26 @@ const assortedSchema = {
 export class OpenAIVisionExtractor implements VisionExtractor, AssortedExtractor {
   private readonly client: OpenAI;
   constructor(apiKey: string, private readonly model = "gpt-5.6-sol") { this.client = new OpenAI({ apiKey }); }
-  async extract(image: { mimeType: string; bytes: Uint8Array }): Promise<{ fields: CandidateFields; provenance: Record<string, unknown> }> {
+  async extract(image: { mimeType: string; bytes: Uint8Array }): Promise<{ candidates: CandidateFields[]; provenance: Record<string, unknown> }> {
     const imageUrl = `data:${image.mimeType};base64,${Buffer.from(image.bytes).toString("base64")}`;
     const response = await this.client.responses.create({
       model: this.model,
       input: [{
         role: "user",
         content: [
-          { type: "input_text", text: "Read this book cover. Propose bibliographic fields. Use null when the image does not support a value; never invent an ISBN." },
+          { type: "input_text", text: "Catalog every distinct book visibly supported by this photo. It may show one cover or many shelf spines. Return one candidate per visible book, in left-to-right order. Use an empty string when title or author is unreadable, null for other unsupported values, and never invent an ISBN. Do not merge adjacent books." },
           { type: "input_image", image_url: imageUrl, detail: "high" }
         ]
       }],
-      text: { format: { type: "json_schema", name: "book_candidate", strict: true, schema: candidateSchema } }
+      text: { format: { type: "json_schema", name: "book_scan_batch", strict: true, schema: scanBatchSchema } }
     });
+    const parsed = JSON.parse(response.output_text) as { candidates: CandidateFields[] };
     return {
-      fields: JSON.parse(response.output_text) as CandidateFields,
+      candidates: parsed.candidates,
       provenance: { provider: "openai", model: this.model, responseId: response.id, extractedAt: new Date().toISOString() }
     };
   }
-  async extractAssorted(image: { mimeType: string; bytes: Uint8Array }): Promise<{ fields: AssortedFields; provenance: Record<string, unknown> }> { const imageUrl = "data:" + image.mimeType + ";base64," + Buffer.from(image.bytes).toString("base64"); const response = await this.client.responses.create({ model: this.model, input: [{ role: "user", content: [{ type: "input_text", text: "Review this box-scoped Assorted Things photo. Suggest only visibly supported metadata. Use null for unsupported scalar values. List important uncertainty in unknowns and ask short human review questions. Never infer ownership, value, safety, exact material, brand, or identity without visible evidence. This is not a book record." }, { type: "input_image", image_url: imageUrl, detail: "high" }] }], text: { format: { type: "json_schema", name: "assorted_capture", strict: true, schema: assortedSchema } } }); return { fields: JSON.parse(response.output_text) as AssortedFields, provenance: { provider: "openai", model: this.model, responseId: response.id, extractedAt: new Date().toISOString(), purpose: "assorted-things-review" } }; }
+  async extractAssorted(image: { mimeType: string; bytes: Uint8Array }): Promise<{ fields: AssortedFields; provenance: Record<string, unknown> }> { const imageUrl = "data:" + image.mimeType + ";base64," + Buffer.from(image.bytes).toString("base64"); const response = await this.client.responses.create({ model: this.model, input: [{ role: "user", content: [{ type: "input_text", text: "Review this box-scoped Assorted Things photo. The inventory commonly includes puzzles, note cards, neighbor-made art, and small trinkets. Suggest only visibly supported metadata. Use null for unsupported scalar values. List important uncertainty in unknowns and ask short human review questions. Never infer ownership, value, safety, exact material, brand, or identity without visible evidence. This is not a book record." }, { type: "input_image", image_url: imageUrl, detail: "high" }] }], text: { format: { type: "json_schema", name: "assorted_capture", strict: true, schema: assortedSchema } } }); return { fields: JSON.parse(response.output_text) as AssortedFields, provenance: { provider: "openai", model: this.model, responseId: response.id, extractedAt: new Date().toISOString(), purpose: "assorted-things-review" } }; }
 }
 
 export class OpenAIEmbedder implements Embedder {

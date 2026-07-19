@@ -1,20 +1,21 @@
 # LLL ICM Reference Node
 
-This is the working Phase 1.5C application generated through the repository's Interpretable Context Methodology. It is both an independently branded, own-domain library service and an LLL Central-compatible read node, with a browser UI and an MCP interface for ChatGPT-compatible agents.
+This is the working Phase 1.5D application generated through the repository's Interpretable Context Methodology. It is both an independently branded, own-domain library service and an LLL Central-compatible read node, with a browser UI and an MCP interface for ChatGPT-compatible agents.
 
 The node owns its boxes, books, scan candidates, audit trail, and vectors. Central discovers and reads public data; it does not become the node's database.
 
 ## What works
 
-- A responsive branded library UI with local map, catalog, scanner, operator controls, and a Garden/Terminal/Cosmic theme switcher.
+- A responsive branded library UI with local map, catalog, destination-first Books or Assorted Things scanner, operator controls, and a Garden/Terminal/Cosmic theme switcher.
 - A seeded Happy Box at `66 Colon Ave, St. Augustine, FL 32084` for the hackathon walkthrough.
-- Box-scoped Assorted Things photos: manual-first durable capture, optional OpenAI suggestions, explicit unknowns, and human confirm/reject without creating books.
+- One cover or shelf-spine photo produces 1 through 15 independently editable book candidates; only reviewed confirmations create books.
+- Box-scoped Assorted Things photos: manual-first durable capture, optional OpenAI suggestions, explicit unknowns, and human confirm/reject without creating books. Confirmed puzzles, note cards, art, and trinkets are zoomable inside their box.
 - Browser-based box and book CRUD, including moving books between boxes.
 - Seven MCP tools for catalog discovery, maps, photo analysis, review, and confirmed book creation.
 - A ChatGPT widget resource that renders box maps, books, and scan candidates.
 - Full box and book CRUD behind a local operator bearer token.
 - Anonymous LLL Lite 0.1.0-compatible reads for health, boxes, books, and box inventory.
-- JPEG/PNG/WebP vision extraction through the OpenAI Responses API and `gpt-5.6-sol`.
+- JPEG/PNG/WebP single-cover and multi-spine vision extraction through the OpenAI Responses API and `gpt-5.6-sol`.
 - Editable pending candidates; only idempotent human confirmation creates a book.
 - `text-embedding-3-small` embeddings stored and searched locally with exact-pinned `sqlite-vec`.
 - Deterministic keyword fallback when OpenAI or vector search is unavailable.
@@ -65,7 +66,7 @@ Local product routes use `/api/manage/*` and require:
 Authorization: Bearer <OPERATOR_TOKEN>
 ```
 
-Assorted Things routes live under `/api/manage/assorted` and remain private to the local operator; they are deliberately absent from the Central-compatible surface.
+Assorted Things management routes live under `/api/manage/assorted`. Pending and rejected captures remain private. Confirmed items gain own-domain reads at `GET /api/boxes/{id}/assorted` and `GET /api/assorted/{id}/image`; these extensions remain deliberately outside the Central-compatible surface.
 
 Search is `GET /api/search?q=ocean&boxId=<optional-uuid>`. Its response reports `semantic`, `keyword`, or `keyword_fallback`.
 
@@ -88,7 +89,7 @@ npx mcp-inspector \
   --header "Authorization: Bearer $OPERATOR_TOKEN"
 ```
 
-Useful prompts include “show my library boxes,” “search my catalog for ocean books,” and “analyze this book photo for the Garden Gate box.” The write path deliberately separates analysis, editable preparation, and explicit confirmation. Reusing the same idempotency key returns the original confirmed book.
+Useful prompts include “show my library boxes,” “search my catalog for ocean books,” and “analyze this shelf photo for the Garden Gate box.” The write path deliberately separates analysis, editable preparation, and explicit confirmation. Reusing the same idempotency key returns the original confirmed book.
 
 ## Own domain and Central
 
@@ -104,7 +105,7 @@ Current Central derives the UI origin from the registered endpoint, so splitting
 
 ## OpenAI ownership
 
-The OpenAI adapter has two strict proposal schemas. Book-cover bytes remain temporary and produce editable bibliographic candidates. Assorted Things originals are saved locally first; OpenAI then proposes bounded metadata, unknowns, and human questions. Both paths store provenance, and neither adapter writes repositories directly. Application services validate proposals; a local operator controls every canonical transition.
+The OpenAI adapter has two strict proposal schemas. Book and shelf bytes remain temporary and produce a bounded array of editable bibliographic candidates with shared batch provenance. Assorted Things originals are saved locally first; OpenAI then proposes bounded metadata, unknowns, and human questions. Both paths store provenance, and neither adapter writes repositories directly. Application services validate proposals; a local operator controls every canonical transition.
 
 Embeddings are derived from the versioned `book-search-v1` text representation. A canonical book may exist without a vector, and a model outage never rolls back inventory.
 

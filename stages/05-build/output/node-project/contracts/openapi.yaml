@@ -4,7 +4,7 @@ info:
   version: 0.1.0
   description: |
     Contract-first hybrid node. The six anonymous reads preserve the pinned
-    LLL Lite 0.1.0 profile; management writes use the node's separate token.
+    LLL Lite 0.1.0 profile; box-scoped own-domain inventory reads are an explicit extension, and management writes use the node's separate token.
 servers:
   - url: http://localhost:3000
 paths:
@@ -72,6 +72,24 @@ paths:
           content:
             application/json:
               schema: { $ref: "#/components/schemas/PagedBooks" }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/boxes/{id}/assorted:
+    get:
+      operationId: listConfirmedBoxAssortedThings
+      description: Own-domain extension listing only human-confirmed Assorted Things in a visible box; not part of the Central compatibility profile.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200": { description: Confirmed box-scoped Assorted Things returned. }
+        "404": { $ref: "#/components/responses/NotFound" }
+  /api/assorted/{id}/image:
+    get:
+      operationId: getConfirmedAssortedThingImage
+      description: Own-domain extension returning an image only when its capture is confirmed and its box is public.
+      parameters:
+        - $ref: "#/components/parameters/Id"
+      responses:
+        "200": { description: Confirmed item image bytes. }
         "404": { $ref: "#/components/responses/NotFound" }
   /api/books:
     get:
@@ -174,10 +192,10 @@ paths:
           description: Idempotently creates the local judge-demo boxes and books.
   /api/manage/candidates/analyze:
     post:
-      operationId: analyzeBookImage
+      operationId: analyzeBookOrShelfImage
       security: [{ operatorToken: [] }]
       responses:
-        "201": { description: Pending candidate created. }
+        "201": { description: A pending review batch containing 1 through 15 candidates is created. }
         "503": { description: OpenAI is unavailable; manual CRUD remains available. }
   /api/manage/candidates/{id}:
     get:

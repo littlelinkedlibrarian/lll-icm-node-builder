@@ -104,6 +104,21 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
     const q = request.query as Paging, result = input.store.listBooks(page(q.page), limit(q.limit), id, true);
     return envelope({ ...result, data: result.data.map(compatibleBook) });
   });
+  app.get("/api/boxes/:id/assorted", async (request, reply) => {
+    const id = (request.params as Id).id;
+    if (!input.store.getBox(id, true)) return reply.code(404).send({ error: "not_found", message: "Box not found" });
+    return { data: input.store.listPublicAssorted(id).map(capture => ({
+      id: capture.id, boxId: capture.boxId, state: capture.state, fields: capture.fields,
+      imageUrl: "/api/assorted/" + capture.id + "/image", createdAt: capture.createdAt, updatedAt: capture.updatedAt
+    })) };
+  });
+  app.get("/api/assorted/:id/image", async (request, reply) => {
+    const id = (request.params as Id).id;
+    if (!input.store.getPublicAssorted(id)) return reply.code(404).send({ error: "not_found", message: "Assorted item not found" });
+    const value = input.store.getAssortedImage(id);
+    return value ? reply.type(value.mimeType).send(Buffer.from(value.bytes)) : reply.code(404).send({ error: "not_found", message: "Assorted item image not found" });
+  });
+
   app.get("/api/books", async (request) => {
     const q = request.query as Paging, result = input.store.listBooks(page(q.page), limit(q.limit), undefined, true);
     return envelope({ ...result, data: result.data.map(compatibleBook) });
@@ -185,7 +200,7 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
     return input.store.getCandidate((request.params as Id).id) ?? reply.code(404).send({ error: "not_found", message: "Candidate not found" });
   });
   app.patch("/api/manage/candidates/:id", { preHandler: auth }, async (request, reply) => {
-    const value = input.store.updateFields((request.params as Id).id, candidateFields(request.body));
+    const value = input.store.updateFields((request.params as Id).id, candidateFields(request.body, true));
     return value ?? reply.code(409).send({ error: "invalid_candidate_state", message: "Only pending candidates can be edited" });
   });
   app.post("/api/manage/candidates/:id/reject", { preHandler: auth }, async (request, reply) => {
@@ -195,6 +210,8 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
   app.post("/api/manage/candidates/:id/confirm", { preHandler: auth }, async (request) => {
     const body = request.body as { actor: string; idempotencyKey: string };
     if (!body.actor?.trim() || !body.idempotencyKey?.trim()) throw new DomainError("validation_error", 400, "Actor and idempotencyKey are required");
+    const candidate = input.store.getCandidate((request.params as Id).id);
+    if (candidate) candidateFields(candidate.fields, true);
     let result;
     try {
       result = input.store.confirm((request.params as Id).id, body.actor, body.idempotencyKey);

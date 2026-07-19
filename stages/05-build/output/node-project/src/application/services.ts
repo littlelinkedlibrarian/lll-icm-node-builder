@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { AssortedFields, Book, Box, CandidateFields, SearchMode } from "../domain/model.js";
 import type { AssortedExtractor, Embedder, VectorIndex, VisionExtractor } from "../ports/index.js";
 import { SqliteStore } from "../db/store.js";
@@ -30,11 +30,11 @@ export function validateBook(input: Omit<Book, "id" | "createdAt" | "updatedAt">
   if (!store.getBox(input.boxId)) throw new DomainError("box_not_found", 404, "Destination box does not exist");
 }
 
-export function candidateFields(value: unknown): CandidateFields {
+export function candidateFields(value: unknown, requireIdentity = false): CandidateFields {
   if (!value || typeof value !== "object") throw new DomainError("invalid_model_output", 502, "Model output is not an object");
   const row = value as Record<string, unknown>;
-  if (typeof row.title !== "string" || !row.title.trim() || typeof row.author !== "string" || !row.author.trim()) {
-    throw new DomainError("invalid_model_output", 502, "Model output must contain title and author");
+  if (typeof row.title !== "string" || typeof row.author !== "string" || (requireIdentity && (!row.title.trim() || !row.author.trim()))) {
+    throw new DomainError(requireIdentity ? "validation_error" : "invalid_model_output", requireIdentity ? 400 : 502, requireIdentity ? "Review requires a title and author" : "Model output must contain title and author strings");
   }
   const optional = (key: string) => row[key] === null || row[key] === undefined ? null : typeof row[key] === "string" ? row[key] : null;
   return {
@@ -52,7 +52,16 @@ export class CandidateService {
     if (!this.vision) throw new DomainError("openai_unavailable", 503, "Vision extraction is not configured");
     try {
       const extracted = await this.vision.extract({ mimeType, bytes });
-      return this.store.createCandidate(boxId, candidateFields(extracted.fields), extracted.provenance);
+      if (!Array.isArray(extracted.candidates) || !extracted.candidates.length || extracted.candidates.length > 15) {
+        throw new DomainError("invalid_model_output", 502, "Model output must contain 1 through 15 book candidates");
+      }
+      const reviewedFields = extracted.candidates.map(fields => candidateFields(fields));
+      const batchId = randomUUID();
+      const created = reviewedFields.map((fields, position) => this.store.createCandidate(
+        boxId, fields,
+        { ...extracted.provenance, batchId, position, candidateCount: extracted.candidates.length }
+      ));
+      return { id: batchId, boxId, state: "pending_review", candidates: created, createdAt: new Date().toISOString() };
     } catch (error) {
       if (error instanceof DomainError) throw error;
       throw new DomainError("openai_unavailable", 503, "Vision extraction is temporarily unavailable");

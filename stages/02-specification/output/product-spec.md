@@ -158,3 +158,24 @@ Next allowed stage: Stage 03 architecture.
 ### Branded presentation
 
 Garden is the accessible warm default. Terminal and Cosmic are alternate code-native themes. The browser persists the selected theme locally; keyboard access, readable contrast, and domain behavior remain consistent across themes.
+
+
+## Phase 1.5D approved amendment
+
+### Box-scoped personal inventory
+
+- A box is the public navigation boundary. Selecting it reveals that box story, location, books, and human-confirmed Assorted Things; the global Assorted Things menu is removed.
+- Confirmed puzzles, note cards, art, trinkets, and other approved objects are visible and zoomable through own-domain box routes. Pending and rejected captures and their images remain operator-only. These product routes do not expand the six-read Central compatibility profile.
+- The scanner starts with one destination box and an explicit Books or Assorted things choice. The paths share presentation context, not schemas, entities, prompts, or confirmation state.
+
+### Multi-book scan batches
+
+1. One image may contain a cover or several shelf spines.
+2. GPT-5.6 returns a structured array of 1 through 15 visibly supported candidates in image order. Unsupported title or author text remains empty for human completion; ISBN is never invented.
+3. Every candidate receives a shared batch identifier, position, count, and model provenance.
+4. The operator edits, confirms, or rejects every candidate independently. No batch-level auto-publish exists.
+5. MCP returns the same batch and instructs ChatGPT to review candidates independently.
+
+### Deferred personalization slices
+
+Box photos, book covers, approved AI-written introductions, and lightweight placed/taken/returned/moved journey events follow this inventory foundation. Formal patron accounts, due dates, holds, fines, and notifications remain out of scope.

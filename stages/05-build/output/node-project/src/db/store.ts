@@ -229,6 +229,16 @@ export class SqliteStore implements CandidateRepository, AssortedCaptureReposito
     return (this.db.prepare("SELECT * FROM assorted_captures" + where + " ORDER BY created_at DESC").all(...params) as Row[]).map(assortedFrom);
   }
 
+  listPublicAssorted(boxId: string): AssortedCapture[] {
+    if (!this.getBox(boxId, true)) return [];
+    return this.listAssorted(boxId, "confirmed");
+  }
+
+  getPublicAssorted(id: string): AssortedCapture | undefined {
+    const capture = this.getAssorted(id);
+    return capture?.state === "confirmed" && this.getBox(capture.boxId, true) ? capture : undefined;
+  }
+
   getAssortedImage(id: string): { mimeType: string; bytes: Uint8Array } | undefined {
     const row = this.db.prepare("SELECT mime_type,image FROM assorted_captures WHERE id=?").get(id) as Row | undefined;
     return row ? { mimeType: String(row.mime_type), bytes: row.image as Uint8Array } : undefined;

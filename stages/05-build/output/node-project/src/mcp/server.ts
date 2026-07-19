@@ -45,7 +45,7 @@ async function downloadImage(reference: z.infer<typeof imageFile>): Promise<{ mi
 
 export function createMcpServer(deps: McpDependencies): McpServer {
   const server = new McpServer({ name: "little-green-library", version: "0.1.0" }, {
-    instructions: "Read before writing. A photo creates a pending candidate only. Call prepare_book_add with reviewed fields, then call add_book_to_box only after the user explicitly confirms the candidate and destination box in the current turn. Reuse idempotency keys on retries."
+    instructions: "Read before writing. A photo creates one or more pending candidates only. Review each candidate independently. Call prepare_book_add with reviewed fields, then call add_book_to_box only after the user explicitly confirms the candidate and destination box in the current turn. Reuse idempotency keys on retries."
   });
   const candidates = new CandidateService(deps.store, deps.vision);
   const search = new SearchService(deps.store, deps.store, deps.embedder);
@@ -90,20 +90,20 @@ export function createMcpServer(deps: McpDependencies): McpServer {
   });
 
   server.registerTool("analyze_book_photo", {
-    title: "Analyze a book photo", description: "Use this when the user supplies a cover photo and has selected a destination box. This creates an editable pending candidate, never a book.",
-    inputSchema: { boxId: z.string(), image: imageFile }, outputSchema: { candidate: z.any() }, annotations: { ...annotations.write, openWorldHint: true },
-    _meta: { "openai/fileParams": ["image"], "openai/toolInvocation/invoking": "Reading the cover…", "openai/toolInvocation/invoked": "Candidate ready for review." }
+    title: "Analyze a book or shelf photo", description: "Use this when the user supplies one cover or several shelf spines and has selected a destination box. This creates editable pending candidates, never books.",
+    inputSchema: { boxId: z.string(), image: imageFile }, outputSchema: { batch: z.any() }, annotations: { ...annotations.write, openWorldHint: true },
+    _meta: { "openai/fileParams": ["image"], "openai/toolInvocation/invoking": "Reading visible books…", "openai/toolInvocation/invoked": "Candidates ready for review." }
   }, async ({ boxId, image }) => {
     const downloaded = await downloadImage(image);
-    const candidate = await candidates.analyze(boxId, downloaded.mimeType, downloaded.bytes);
-    return { structuredContent: { candidate }, content: [{ type: "text", text: `Prepared “${candidate.fields.title}” as a pending candidate. Ask the user to review every field; no book has been added.` }] };
+    const batch = await candidates.analyze(boxId, downloaded.mimeType, downloaded.bytes);
+    return { structuredContent: { batch }, content: [{ type: "text", text: "Prepared " + batch.candidates.length + " pending book candidate" + (batch.candidates.length === 1 ? "" : "s") + ". Ask the user to review every candidate; no books have been added." }] };
   });
 
   server.registerTool("prepare_book_add", {
     title: "Prepare a reviewed book addition", description: "Use this to save the user's corrections to a pending candidate before asking for final confirmation. It does not add a book.",
     inputSchema: { candidateId: z.string(), fields: z.object(candidateShape) }, outputSchema: { candidate: z.any(), requiresConfirmation: z.boolean() }, annotations: annotations.write
   }, async ({ candidateId, fields }) => {
-    const candidate = deps.store.updateFields(candidateId, candidateFields(fields)); if (!candidate) throw new Error("Only a pending candidate can be prepared");
+    const candidate = deps.store.updateFields(candidateId, candidateFields(fields, true)); if (!candidate) throw new Error("Only a pending candidate can be prepared");
     return { structuredContent: { candidate, requiresConfirmation: true }, content: [{ type: "text", text: `Prepared “${candidate.fields.title}” for ${deps.store.getBox(candidate.boxId)?.name ?? "the selected box"}. Ask for explicit confirmation before adding it.` }] };
   });
 
@@ -112,6 +112,7 @@ export function createMcpServer(deps: McpDependencies): McpServer {
     inputSchema: { candidateId: z.string(), confirmed: z.literal(true), idempotencyKey: z.string().min(8) }, outputSchema: { book: z.any(), candidateId: z.string(), confirmed: z.boolean() }, annotations: annotations.write,
     _meta: { "openai/toolInvocation/invoking": "Adding the confirmed book…", "openai/toolInvocation/invoked": "Book added." }
   }, async ({ candidateId, idempotencyKey }) => {
+    const reviewed = deps.store.getCandidate(candidateId); if (reviewed) candidateFields(reviewed.fields, true);
     const result = deps.store.confirm(candidateId, "chatgpt-operator", idempotencyKey); try { await search.index(result.book); } catch { /* keyword fallback remains available */ }
     return { structuredContent: { book: conciseBook(result.book, deps.store), candidateId, confirmed: true }, content: [{ type: "text", text: `Added “${result.book.title}” to ${deps.store.getBox(result.book.boxId)?.name ?? "the selected box"}.` }] };
   });

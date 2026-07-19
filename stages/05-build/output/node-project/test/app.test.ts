@@ -13,7 +13,7 @@ class FakeEmbedder implements Embedder {
 class FakeVision implements VisionExtractor {
   async extract() {
     const fields: CandidateFields = { title: "The Ocean Book", author: "Ada Reader", isbn: null, genre: "Nature", description: "Ocean life", language: "en", condition: null };
-    return { fields, provenance: { provider: "fixture", model: "gpt-5.6-sol" } };
+    return { candidates: [fields, { ...fields, title: "The Shore Book" }], provenance: { provider: "fixture", model: "gpt-5.6-sol" } };
   }
 }
 
@@ -78,8 +78,9 @@ describe("reference node", () => {
       boxId: box.id, mimeType: "image/jpeg", imageBase64: Buffer.from("fixture").toString("base64")
     } });
     expect(analyzed.statusCode).toBe(201);
-    const candidate = analyzed.json();
-    expect(candidate.state).toBe("pending");
+    const batch = analyzed.json();
+    expect(batch).toMatchObject({ state: "pending_review", candidates: [{ state: "pending" }, { state: "pending" }] });
+    const candidate = batch.candidates[0];
     expect(store.listBooks(1, 20).total).toBe(0);
     const request = { method: "POST" as const, url: `/api/manage/candidates/${candidate.id}/confirm`, headers: { authorization: "Bearer secret" }, payload: { actor: "learner", idempotencyKey: "demo-1" } };
     const first = (await app.inject(request)).json();
@@ -90,7 +91,7 @@ describe("reference node", () => {
     const rejectedResponse = await app.inject({ method: "POST", url: "/api/manage/candidates/analyze", headers: { authorization: "Bearer secret" }, payload: {
       boxId: box.id, mimeType: "image/png", imageBase64: Buffer.from("fixture").toString("base64")
     } });
-    const rejected = rejectedResponse.json();
+    const rejected = rejectedResponse.json().candidates[0];
     expect((await app.inject({ method: "POST", url: `/api/manage/candidates/${rejected.id}/reject`, headers: { authorization: "Bearer secret" } })).json().state).toBe("rejected");
     expect((await app.inject({ method: "POST", url: `/api/manage/candidates/${rejected.id}/confirm`, headers: { authorization: "Bearer secret" }, payload: {
       actor: "learner", idempotencyKey: "demo-2"

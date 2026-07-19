@@ -101,3 +101,19 @@ Final evidence: a fresh clone can install, migrate, start, execute CRUD, produce
 - [x] Add fake-backed integration evidence for offline save, protected images, AI proposals, confirmation, rejection, and no-book behavior.
 - [ ] Observe the full browser journey and run an opt-in live OpenAI smoke with a synthetic/non-sensitive image.
 - [ ] Deploy only after the owner approves environment, tunnel routing, operator token handling, backup path, and rollback.
+
+
+## Phase 1.5D: personal box inventory and scanner modes
+
+- [x] Fast-forward Phase 1.5C into main and branch from the merged state.
+- [x] Replace the global Assorted Things menu with a destination-first Books or Assorted things scanner.
+- [x] Extract 1 through 15 book candidates from a cover or shelf-spine photo and review each independently.
+- [x] Add box inventory presentation for books and non-rejected operator captures.
+- [x] Publish only confirmed Assorted Things through box-scoped own-domain reads and zoomable images.
+- [x] Keep pending/rejected images protected and keep Assorted Things outside the Central compatibility profile.
+- [x] Align the ChatGPT MCP photo tool with the multi-candidate batch contract.
+- [ ] Add primary box-photo media behind the media port.
+- [ ] Add approved cover lookup and AI introduction enrichment after confirmed book identity.
+- [ ] Add lightweight append-only placed/taken/returned/moved events if hackathon time remains.
+
+Checkpoint: human-test a photo containing at least three spines, confirm and reject different candidates, confirm one Assorted Thing, and verify its public zoom view appears only inside the selected box.
