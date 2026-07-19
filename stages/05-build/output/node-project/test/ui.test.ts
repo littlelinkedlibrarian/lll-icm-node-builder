@@ -28,6 +28,8 @@ describe("branded browser application", () => {
     expect(home.body).toContain("activity-history");
     expect(home.body).toContain("activity-dialog");
     expect(home.body).toContain("book-details-dialog");
+    expect(home.body).toContain("book-detail-actions");
+    expect(home.body).toContain("box-detail-actions");
     expect(home.body).toContain("scan-selection");
     expect(home.body).toContain("assorted-selection");
     expect(home.body).toContain("operator-logout");
@@ -36,7 +38,15 @@ describe("branded browser application", () => {
     expect(home.body).toContain("Add selected books");
     expect((await app.inject({ method: "GET", url: "/assets/app.js" })).body).toContain("metadata-selection");
     expect((await app.inject({ method: "GET", url: "/assets/app.js" })).body).toContain("setActivityZoom");
-    expect((await app.inject({ method: "GET", url: "/assets/app.js" })).body).toContain("openBookDetails");
+    const browserScript = (await app.inject({ method: "GET", url: "/assets/app.js" })).body;
+    expect(browserScript).toContain("openBookDetails");
+    expect(browserScript).toContain("makeOperatorAction");
+    expect(browserScript).toContain("async function deleteBook");
+    expect(browserScript).toContain(`closeDialogIfOpen("book-details-dialog")`);
+    expect(browserScript).toContain(`const target = event.target.closest("button")`);
+    expect(browserScript).toContain(`openDialog("activity-dialog")`);
+    expect(browserScript).toContain(`openDialog("book-details-dialog")`);
+    expect(browserScript).not.toContain(`closest("button,[data-open-box]`);
     expect((await app.inject({ method: "GET", url: "/assets/app.js" })).body).toContain("1 image selected");
     expect((await app.inject({ method: "GET", url: "/assets/app.js" })).body).toContain("Saved — opening human review");
     expect((await app.inject({ method: "GET", url: "/assets/app.js" })).body).toContain("Logged out — public browsing remains available");
@@ -45,7 +55,10 @@ describe("branded browser application", () => {
     expect(home.body).toContain("data-scan-kind=\"assorted\"");
     expect(home.body).toContain("capture=\"environment\"");
     expect(home.body).toContain("Take a shelf photo");
-    expect((await app.inject({ method: "GET", url: "/assets/styles.css" })).body).toContain(".view-switch button.active");
+    const browserStyles = (await app.inject({ method: "GET", url: "/assets/styles.css" })).body;
+    expect(browserStyles).toContain(".view-switch button.active");
+    expect(browserStyles).toContain(".box-card-primary");
+    expect(browserStyles).toContain(".book-card-primary");
     expect((await app.inject({ method: "GET", url: "/assets/styles.css" })).body).toContain("background:#1d4ed8!important");
     expect(home.body).not.toContain("href=\"#assorted\"");
     expect((await app.inject({ method: "GET", url: "/api/meta" })).json()).toMatchObject({ name: "Judge Box", compatibilityVersion: "0.1.0" });

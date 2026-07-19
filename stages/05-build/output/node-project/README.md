@@ -1,16 +1,17 @@
 # LLL ICM Reference Node
 
-This is the working Phase 1.5E application generated through the repository's Interpretable Context Methodology. It is both an independently branded, own-domain library service and an LLL Central-compatible read node, with a browser UI and an MCP interface for ChatGPT-compatible agents.
+This is the working Phase 1.5F application generated through the repository's Interpretable Context Methodology. It is both an independently branded, own-domain library service and an LLL Central-compatible read node, with a browser UI and an MCP interface for ChatGPT-compatible agents.
 
 The node owns its boxes, books, scan candidates, audit trail, and vectors. Central discovers and reads public data; it does not become the node's database.
 
 ## What works
 
 - A responsive branded library UI with local map, catalog, destination-first Books or Assorted Things scanner, operator controls, and a Garden/Terminal/Cosmic theme switcher.
-A seeded Happy Box at `66 Colon Ave, St. Augustine, FL 32084` for the hackathon walkthrough. Re-running **Load demo** idempotently upgrades the three reference books with ISBN, cover, description, language, condition, publication year, and Open Library provenance.
+- A seeded Happy Box at `66 Colon Ave, St. Augustine, FL 32084` for the hackathon walkthrough. Re-running **Load demo** idempotently upgrades the three reference books with ISBN, cover, description, language, condition, publication year, and Open Library provenance.
 - One cover or shelf-spine photo produces 1 through 15 book candidates in one review modal; edit only incomplete or incorrect results, then publish the selected books together.
 - Box-scoped Assorted Things photos use durable human-only capture and confirm/reject without object recognition or book creation. Confirmed puzzles, note cards, art, and trinkets are zoomable inside their box.
-- Browser-based box and book CRUD, including moving books between boxes.
+- Dedicated box and book primary controls open associated detail modals; operator edit and delete controls are isolated so one click performs one action.
+- Browser-based box and book CRUD, including moving books between boxes. Successful deletion closes stale detail views before refreshing the catalog.
 - Ten MCP tools for catalog discovery, maps, photo analysis, review, scan activity history, edition selection, and confirmed book creation.
 - A ChatGPT widget resource that renders box maps, books, and scan candidates.
 - Full box and book CRUD behind a local operator bearer token.

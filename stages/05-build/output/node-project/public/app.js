@@ -1,4 +1,4 @@
-const state = { boxes: [], books: [], visibleBooks: [], captures: [], activities: [], captureImages: new Map(), activityImages: new Map(), activityZoom: 1, activeBoxId: null, inventoryThings: [], candidateQueue: [], scanKind: "books", token: localStorage.getItem("lll.operatorToken") ?? "", candidate: null, theme: localStorage.getItem("lll.theme") ?? "garden" };
+const state = { boxes: [], books: [], visibleBooks: [], captures: [], activities: [], captureImages: new Map(), activityImages: new Map(), activityZoom: 1, activeBoxId: null, activeBookId: null, bookReturnBoxId: null, inventoryThings: [], candidateQueue: [], scanKind: "books", token: localStorage.getItem("lll.operatorToken") ?? "", candidate: null, theme: localStorage.getItem("lll.theme") ?? "garden" };
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const empty = () => $("#empty-template").content.cloneNode(true);
@@ -65,17 +65,37 @@ function updateAccess() {
   $("#access-status").textContent = state.token ? "Operator access is active on this device. You can scan, review, add, edit, and delete local inventory." : "Guest mode can browse public boxes, book details, search, maps, and confirmed Assorted Things. Connect as an operator to manage this node.";
 }
 
+function makeOperatorAction(label, symbol, dataset) {
+  const button = document.createElement("button"); button.type = "button"; button.className = "icon-button"; button.textContent = symbol; button.setAttribute("aria-label", label);
+  Object.entries(dataset).forEach(([key, value]) => { if (value) button.dataset[key] = value; });
+  return button;
+}
+
 function boxCard(box) {
-  const article = document.createElement("article"); article.className = "box-card"; article.dataset.openBox = box.id; article.tabIndex = 0; article.setAttribute("role", "button"); article.setAttribute("aria-label", "Open " + box.name);
+  const article = document.createElement("article"); article.className = "box-card";
+  const primary = document.createElement("button"); primary.type = "button"; primary.className = "box-card-primary"; primary.dataset.openBox = box.id; primary.setAttribute("aria-label", "Open details for " + box.name);
+  const art = document.createElement("div"); art.className = "box-card-art";
+  const body = document.createElement("div"); body.className = "box-card-body";
+  const eyebrow = document.createElement("p"); eyebrow.className = "eyebrow"; eyebrow.textContent = box.visibility === "private" ? "Private box" : "Public box";
+  const heading = document.createElement("h3"); heading.textContent = box.name;
+  const description = document.createElement("p"); description.textContent = box.description || "A little shelf waiting for its next story.";
+  const meta = document.createElement("div"); meta.className = "box-meta";
+  const location = document.createElement("span"); location.textContent = box.location || "Location not published";
   const count = box.bookCount ?? state.books.filter(book => (book.boxId ?? book.libraryBoxId) === box.id).length;
-  article.innerHTML = `<div class="box-card-art"></div><div class="box-card-body"><p class="eyebrow">${box.visibility === "private" ? "Private box" : "Public box"}</p><h3>${escapeHtml(box.name)}</h3><p>${escapeHtml(box.description || "A little shelf waiting for its next story.")}</p><div class="box-meta"><span>${escapeHtml(box.location || "Location not published")}</span><strong>${count} book${count === 1 ? "" : "s"}</strong></div>${state.token ? `<div class="book-actions"><button class="icon-button" data-edit-box="${box.id}" aria-label="Edit ${escapeHtml(box.name)}">✎</button><button class="icon-button" data-delete-box="${box.id}" aria-label="Delete ${escapeHtml(box.name)}">×</button></div>` : ""}</div>`;
+  const total = document.createElement("strong"); total.textContent = count + " book" + (count === 1 ? "" : "s");
+  meta.append(location, total); body.append(eyebrow, heading, description, meta); primary.append(art, body); article.append(primary);
+  if (state.token) {
+    const actions = document.createElement("div"); actions.className = "card-operator-actions";
+    actions.append(makeOperatorAction("Edit " + box.name, "✎", { editBox: box.id }), makeOperatorAction("Delete " + box.name, "×", { deleteBox: box.id }));
+    article.append(actions);
+  }
   return article;
 }
 
 function renderBoxes() {
-  const grid = $("#box-grid"); grid.replaceChildren();
+  const grid = document.getElementById("box-grid"); grid.replaceChildren();
   if (!state.boxes.length) grid.append(empty()); else state.boxes.forEach(box => grid.append(boxCard(box)));
-  const map = $("#map-pins"); map.replaceChildren();
+  const map = document.getElementById("map-pins"); map.replaceChildren();
   state.boxes.filter(box => box.latitude !== null && box.longitude !== null).forEach(box => {
     const pin = document.createElement("button"); pin.className = "map-pin"; pin.title = box.name; pin.dataset.openBox = box.id;
     pin.style.left = `${((Number(box.longitude) + 180) / 360) * 94 + 3}%`;
@@ -84,17 +104,31 @@ function renderBoxes() {
   if (!map.children.length) map.append(empty());
 }
 
+function bookVisual(book) {
+  if (!book.coverUrl) { const spine = document.createElement("span"); spine.className = "book-spine"; spine.setAttribute("aria-hidden", "true"); return spine; }
+  const image = document.createElement("img"); image.className = "book-cover"; image.src = book.coverUrl; image.alt = "Cover of " + book.title; image.loading = "lazy"; return image;
+}
+
+function bookCard(book, returnBoxId = null) {
+  const boxId = book.boxId ?? book.libraryBoxId, box = state.boxes.find(item => item.id === boxId);
+  const article = document.createElement("article"); article.className = "book-card";
+  const primary = document.createElement("button"); primary.type = "button"; primary.className = "book-card-primary"; primary.dataset.openBook = book.id; if (returnBoxId) primary.dataset.returnBox = returnBoxId; primary.setAttribute("aria-label", "View details for " + book.title);
+  const copy = document.createElement("span"); copy.className = "book-card-copy";
+  const title = document.createElement("strong"); title.textContent = book.title;
+  const metadata = document.createElement("small"); metadata.textContent = book.author + " · " + (box?.name ?? "Unboxed") + (book.genre ? " · " + book.genre : "");
+  copy.append(title, metadata); primary.append(bookVisual(book), copy); article.append(primary);
+  if (state.token) {
+    const actions = document.createElement("div"); actions.className = "card-operator-actions";
+    actions.append(makeOperatorAction("Edit " + book.title, "✎", { editBook: book.id, returnBox: returnBoxId }), makeOperatorAction("Delete " + book.title, "×", { deleteBook: book.id, returnBox: returnBoxId }));
+    article.append(actions);
+  }
+  return article;
+}
+
 function renderBooks(books, mode) {
-  state.visibleBooks = books; const list = $("#book-list"); list.replaceChildren();
-  if (!books.length) list.append(empty());
-  books.forEach(book => {
-    const boxId = book.boxId ?? book.libraryBoxId; const box = state.boxes.find(item => item.id === boxId);
-    const article = document.createElement("article"); article.className = "book-card"; article.dataset.openBook = book.id; article.tabIndex = 0; article.setAttribute("role", "button"); article.setAttribute("aria-label", "View details for " + book.title);
-    const visual = book.coverUrl ? `<img class="book-cover" src="${escapeHtml(book.coverUrl)}" alt="Cover of ${escapeHtml(book.title)}" loading="lazy">` : `<div class="book-spine" aria-hidden="true"></div>`;
-    article.innerHTML = `${visual}<div><h3>${escapeHtml(book.title)}</h3><p>${escapeHtml(book.author)} · ${escapeHtml(box?.name ?? "Unboxed")}${book.genre ? ` · ${escapeHtml(book.genre)}` : ""}</p></div>${state.token ? `<div class="book-actions"><button class="icon-button" data-edit-book="${book.id}" aria-label="Edit ${escapeHtml(book.title)}">✎</button><button class="icon-button" data-delete-book="${book.id}" aria-label="Delete ${escapeHtml(book.title)}">×</button></div>` : ""}`;
-    list.append(article);
-  });
-  if (mode) $("#search-note").textContent = mode === "semantic" ? "Multilingual semantic results from OpenAI embeddings stored in local sqlite-vec." : mode === "keyword_fallback" ? "OpenAI or vectors were unavailable, so the node returned keyword results." : "Keyword results from the local catalog.";
+  state.visibleBooks = books; const list = document.getElementById("book-list"); list.replaceChildren();
+  if (!books.length) list.append(empty()); else books.forEach(book => list.append(bookCard(book)));
+  if (mode) document.getElementById("search-note").textContent = mode === "semantic" ? "Multilingual semantic results from OpenAI embeddings stored in local sqlite-vec." : mode === "keyword_fallback" ? "OpenAI or vectors were unavailable, so the node returned keyword results." : "Keyword results from the local catalog.";
 }
 
 async function activityImageUrl(id) {
@@ -162,6 +196,7 @@ async function openAssortedReview(id) {
 async function openBoxInventory(id) {
   const box = state.boxes.find(item => item.id === id); if (!box) return;
   state.activeBoxId = id;
+  const detailActions = document.getElementById("box-detail-actions"); detailActions.classList.toggle("hidden", !state.token); document.getElementById("edit-detail-box").dataset.editBox = id; document.getElementById("delete-detail-box").dataset.deleteBox = id;
   const books = state.books.filter(book => (book.boxId ?? book.libraryBoxId) === id);
   if (state.token) state.inventoryThings = state.captures.filter(item => item.boxId === id && item.state !== "rejected");
   else state.inventoryThings = (await api("/api/boxes/" + id + "/assorted", { manage: false })).data;
@@ -172,7 +207,7 @@ async function openBoxInventory(id) {
   $("#inventory-thing-count").textContent = String(state.inventoryThings.length);
   const bookList = $("#inventory-books"); bookList.replaceChildren();
   if (!books.length) bookList.append(empty());
-  books.forEach(book => { const article = document.createElement("article"); article.className = "book-card"; article.dataset.openBook = book.id; article.tabIndex = 0; article.setAttribute("role", "button"); article.setAttribute("aria-label", "View details for " + book.title); const visual = book.coverUrl ? "<img class=\"book-cover\" src=\"" + escapeHtml(book.coverUrl) + "\" alt=\"Cover of " + escapeHtml(book.title) + "\" loading=\"lazy\">" : "<div class=\"book-spine\" aria-hidden=\"true\"></div>"; article.innerHTML = visual + "<div><h3>" + escapeHtml(book.title) + "</h3><p>" + escapeHtml(book.author) + (book.genre ? " · " + escapeHtml(book.genre) : "") + "</p></div>"; bookList.append(article); });
+  books.forEach(book => bookList.append(bookCard(book, id)));
   const thingGrid = $("#inventory-things"); thingGrid.replaceChildren();
   if (!state.inventoryThings.length) thingGrid.append(empty());
   for (const item of state.inventoryThings) {
@@ -196,8 +231,9 @@ function openThing(id) {
   openDialog("thing-dialog");
 }
 
-function openBookDetails(id) {
+function openBookDetails(id, returnBoxId = null) {
   const book = state.visibleBooks.find(item => item.id === id) || state.books.find(item => item.id === id); if (!book) return;
+  state.activeBookId = id; state.bookReturnBoxId = returnBoxId;
   const boxId = book.boxId ?? book.libraryBoxId; const box = state.boxes.find(item => item.id === boxId);
   const inventoryDialog = document.getElementById("box-inventory-dialog"); if (inventoryDialog.open) inventoryDialog.close();
   const cover = document.getElementById("book-details-cover"); cover.replaceChildren();
@@ -210,6 +246,7 @@ function openBookDetails(id) {
   const metadata = document.getElementById("book-details-metadata"); metadata.replaceChildren();
   [["ISBN", book.isbn], ["Genre", book.genre], ["Language", book.language], ["Publication year", book.publicationYear], ["Condition", book.condition], ["Cataloged", book.aiExtracted || book.aiProvenance ? "AI-assisted, human confirmed" : "Manual entry"], ["Added", book.createdAt ? new Date(book.createdAt).toLocaleDateString() : null]].filter(([, value]) => value !== null && value !== undefined && value !== "").forEach(([label, value]) => { const term = document.createElement("dt"); term.textContent = String(label); const detail = document.createElement("dd"); detail.textContent = String(value).replaceAll("_", " "); metadata.append(term, detail); });
   const source = document.getElementById("book-details-source"), sourceUrl = book.metadataProvenance?.sourceUrl; source.classList.toggle("hidden", !sourceUrl); if (sourceUrl) source.href = sourceUrl;
+  const actions = document.getElementById("book-detail-actions"); actions.classList.toggle("hidden", !state.token); document.getElementById("edit-detail-book").dataset.editBook = id; document.getElementById("delete-detail-book").dataset.deleteBook = id;
   openDialog("book-details-dialog");
 }
 
@@ -242,25 +279,54 @@ $("#book-form").addEventListener("submit", async event => {
   try { await api(form.dataset.editId ? `/api/manage/books/${form.dataset.editId}` : "/api/manage/books", { method: form.dataset.editId ? "PATCH" : "POST", body: bookPayload(form) }); form.closest("dialog").close(); await loadManaged(); toast(form.dataset.editId ? "Book updated" : "Book added"); } catch (error) { $(".form-status", form).textContent = error.message; }
 });
 
-document.addEventListener("click", async event => {
-  const target = event.target.closest("button,[data-open-box],[data-open-book]"); if (!target) return;
-  if (target.dataset.openBox) await openBoxInventory(target.dataset.openBox);
-  if (target.dataset.openBook) openBookDetails(target.dataset.openBook);
-  if (target.dataset.openActivity) await openActivity(target.dataset.openActivity);
-  if (target.dataset.activityZoom) setActivityZoom(target.dataset.activityZoom === "in" ? state.activityZoom + .25 : target.dataset.activityZoom === "out" ? state.activityZoom - .25 : 1);
-  if (target.dataset.viewThing) openThing(target.dataset.viewThing);
-  if (target.dataset.reviewAssorted) { $("#box-inventory-dialog").close(); await openAssortedReview(target.dataset.reviewAssorted); }
-  if (target.dataset.editCandidate) openCandidateEdit(target.dataset.editCandidate);
-  if (target.dataset.editBox) { const box = state.boxes.find(item => item.id === target.dataset.editBox); const form = $("#box-form"); form.reset(); form.dataset.editId = box.id; ["name","description","location","latitude","longitude","visibility"].forEach(key => form[key].value = box[key] ?? ""); openDialog("box-dialog"); }
-  if (target.dataset.deleteBox && confirm("Delete this empty box?")) { try { await api(`/api/manage/boxes/${target.dataset.deleteBox}`, { method: "DELETE" }); await loadManaged(); toast("Box deleted"); } catch (error) { toast(error.message); } }
-  if (target.dataset.editBook) { const book = state.books.find(item => item.id === target.dataset.editBook); const form = $("#book-form"); form.reset(); form.dataset.editId = book.id; ["boxId","title","author","isbn","genre","description","language","condition"].forEach(key => form[key].value = book[key] ?? ""); openDialog("book-dialog"); }
-  if (target.dataset.deleteBook && confirm("Delete this book and its search vector?")) { try { await api(`/api/manage/books/${target.dataset.deleteBook}`, { method: "DELETE" }); await loadManaged(); toast("Book deleted"); } catch (error) { toast(error.message); } }
-});
+function closeDialogIfOpen(id) { const dialog = document.getElementById(id); if (dialog?.open) dialog.close(); }
 
-document.addEventListener("keydown", async event => {
-  if (event.key !== "Enter" && event.key !== " ") return;
-  const target = event.target.closest("[data-open-box],[data-open-book]"); if (!target || event.target.closest("button")) return;
-  event.preventDefault(); if (target.dataset.openBox) await openBoxInventory(target.dataset.openBox); else if (target.dataset.openBook) openBookDetails(target.dataset.openBook);
+function openBoxEditor(id) {
+  const box = state.boxes.find(item => item.id === id); if (!box) return;
+  closeDialogIfOpen("box-inventory-dialog");
+  const form = document.getElementById("box-form"); form.reset(); form.dataset.editId = box.id;
+  ["name", "description", "location", "latitude", "longitude", "visibility"].forEach(key => { form[key].value = box[key] ?? ""; });
+  openDialog("box-dialog");
+}
+
+function openBookEditor(id) {
+  const book = state.books.find(item => item.id === id) || state.visibleBooks.find(item => item.id === id); if (!book) return;
+  closeDialogIfOpen("book-details-dialog"); closeDialogIfOpen("box-inventory-dialog");
+  const form = document.getElementById("book-form"); form.reset(); form.dataset.editId = book.id;
+  ["boxId", "title", "author", "isbn", "genre", "description", "language", "condition"].forEach(key => { form[key].value = book[key] ?? ""; });
+  openDialog("book-dialog");
+}
+
+async function deleteBox(id) {
+  const box = state.boxes.find(item => item.id === id); if (!box || !confirm("Delete the empty box “" + box.name + "”?")) return;
+  try {
+    await api("/api/manage/boxes/" + id, { method: "DELETE" });
+    closeDialogIfOpen("box-inventory-dialog"); state.activeBoxId = null; await loadManaged(); toast("Box deleted");
+  } catch (error) { toast(error.message); }
+}
+
+async function deleteBook(id) {
+  const book = state.books.find(item => item.id === id) || state.visibleBooks.find(item => item.id === id); if (!book || !confirm("Delete “" + book.title + "” and its search vector?")) return;
+  try {
+    await api("/api/manage/books/" + id, { method: "DELETE" });
+    closeDialogIfOpen("book-details-dialog"); closeDialogIfOpen("box-inventory-dialog"); state.activeBookId = null; state.bookReturnBoxId = null;
+    await loadManaged(); toast("Book deleted");
+  } catch (error) { toast(error.message); }
+}
+
+document.addEventListener("click", async event => {
+  const target = event.target.closest("button"); if (!target) return;
+  if (target.dataset.openBox) { await openBoxInventory(target.dataset.openBox); return; }
+  if (target.dataset.openBook) { openBookDetails(target.dataset.openBook, target.dataset.returnBox || null); return; }
+  if (target.dataset.editBox) { openBoxEditor(target.dataset.editBox); return; }
+  if (target.dataset.deleteBox) { await deleteBox(target.dataset.deleteBox); return; }
+  if (target.dataset.editBook) { openBookEditor(target.dataset.editBook); return; }
+  if (target.dataset.deleteBook) { await deleteBook(target.dataset.deleteBook); return; }
+  if (target.dataset.openActivity) { await openActivity(target.dataset.openActivity); return; }
+  if (target.dataset.activityZoom) { setActivityZoom(target.dataset.activityZoom === "in" ? state.activityZoom + .25 : target.dataset.activityZoom === "out" ? state.activityZoom - .25 : 1); return; }
+  if (target.dataset.viewThing) { openThing(target.dataset.viewThing); return; }
+  if (target.dataset.reviewAssorted) { closeDialogIfOpen("box-inventory-dialog"); await openAssortedReview(target.dataset.reviewAssorted); return; }
+  if (target.dataset.editCandidate) { openCandidateEdit(target.dataset.editCandidate); }
 });
 
 function clearFileSelection(prefix) {

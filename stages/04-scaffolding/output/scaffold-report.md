@@ -10,6 +10,7 @@ Date: 2026-07-18
 - Domain models and repository/OpenAI ports with no framework types.
 - Contract, migration, HTTP composition, test, and documentation entry points.
 - One-origin deployment defaults for the branded node and `/api` compatibility surface.
+- Entity-presentation shells: separate box/book primary card controls, associated detail modals, sibling operator action regions, and browser-structure test placeholders.
 
 ## Deliberately unresolved for Stage 05
 

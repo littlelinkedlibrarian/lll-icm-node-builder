@@ -57,6 +57,7 @@ describe("reference node", () => {
     store.put(book.id, vector(0), "book-search-v1", "cleanup", "text-embedding-3-small");
     expect((await app.inject({ method: "DELETE", url: `/api/manage/books/${book.id}`, headers: { authorization: "Bearer secret" } })).statusCode).toBe(204);
     expect(store.search(vector(0), 10)).toEqual([]);
+    expect((await app.inject({ method: "GET", url: `/api/books/${book.id}` })).statusCode).toBe(404);
     expect((await app.inject({ method: "DELETE", url: `/api/manage/boxes/${box.id}`, headers: { authorization: "Bearer secret" } })).statusCode).toBe(204);
     expect((await app.inject({ method: "DELETE", url: `/api/manage/boxes/${second.id}`, headers: { authorization: "Bearer secret" } })).statusCode).toBe(204);
 

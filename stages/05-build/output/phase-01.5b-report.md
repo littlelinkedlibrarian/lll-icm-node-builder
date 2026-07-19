@@ -8,9 +8,9 @@ Date: 2026-07-18
 | Slice | Working outcome | Evidence |
 |---|---|---|
 | Shell and identity | Responsive own-domain page, branding metadata, node health, local operator token | Live `npm start`, UI route tests, separate unauthorized cases |
-| Box UX | Cards, create/edit/delete, inventory counts, private management view | Browser/API handlers and integration tests |
+| Box UX | Dedicated primary cards, associated inventory/detail modal, isolated create/edit/delete actions, private management view | Browser/API handlers and integration tests |
 | Map | Local coordinate plot plus list fallback, no external map provider | Browser asset and fixture coordinates |
-| Book UX | Catalog, manual create/edit/move/delete | Browser/API handlers and existing transactional tests |
+| Book UX | Dedicated primary rows, complete metadata/cover detail modal, isolated manual create/edit/move/delete actions | Browser/API handlers and existing transactional tests |
 | Scanner | File selection, destination box, GPT-5.6 candidate, correction, rejection, confirmation | Browser handlers plus candidate-state tests |
 | Search | Semantic result mode, box filter, keyword/fallback explanation | Real sqlite-vec integration and degraded-mode tests |
 | Demo | Two boxes and three books, safe to invoke repeatedly | Idempotent seed integration test and observed live request |

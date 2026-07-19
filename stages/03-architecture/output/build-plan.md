@@ -38,7 +38,9 @@ Evidence: migration and restore tests against temporary database files.
 - [ ] Implement box entity/invariants, repository port, SQLite adapter, use cases, controllers, and schemas.
 - [ ] Implement list/get/create/update/delete with coordinates and timestamps.
 - [ ] Reject deletion of a box that contains books with the specified conflict code.
-- [ ] Add repository, service, HTTP, and contract tests.
+- [ ] Build a dedicated box-card primary control and a box detail modal with metadata, inventory, and isolated operator edit/delete actions.
+- [ ] Prove successful delete closes stale modals and a non-empty conflict preserves the detail context.
+- [ ] Add repository, service, HTTP, contract, and browser-structure tests.
 
 Evidence: an injected HTTP test performs the complete box lifecycle and conflict path.
 
@@ -48,6 +50,8 @@ Evidence: an injected HTTP test performs the complete box lifecycle and conflict
 - [ ] Implement list/get/create/update/delete and box-scoped list with the public pagination envelope.
 - [ ] Preserve extraction provenance and make manual entry independent of OpenAI.
 - [ ] Remove related vector state transactionally when a book is deleted.
+- [ ] Build a dedicated book-card primary control and a book detail modal showing every available bibliographic field and cover.
+- [ ] Keep card open, edit, and delete controls as sibling actions with single-action dispatch; successful delete must not open or leave an empty modal.
 
 Evidence: complete book lifecycle, box-scoped listing, pagination, missing-box, and cleanup tests.
 

@@ -52,6 +52,7 @@ SQLite repositories       OpenAI, sqlite-vec, Central adapters
 | Boundary | Owns | Must not own |
 |---|---|---|
 | Contract | Paths, methods, schemas, status codes, compatibility version | SQL tables or model prompts |
+| Browser entity presenter | Separate primary card controls, box/book detail modals, operator action strips, deterministic modal transitions | Business rules, persistence, or multiplexed click fallthrough |
 | Controller | Parse/validate input, invoke one use case, map domain errors | Business rules or persistence |
 | Application service | CRUD, candidate approval, search, and discovery workflows | Fastify request objects or SQL |
 | Domain | Box, book, candidate, location, and lifecycle invariants | Framework or vendor SDK types |

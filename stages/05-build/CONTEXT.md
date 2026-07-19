@@ -19,7 +19,7 @@ Implement the approved vertical slices according to the learner and agent owners
 1. Copy the scaffold to `output/node-project/`.
 2. Implement one vertical slice at a time in the approved order.
 3. Before each slice, state the boundary and learner versus agent work.
-4. Run its focused tests and demonstrate its user-visible outcome.
+4. Run its focused tests and demonstrate its user-visible outcome. For box/book slices, demonstrate card → detail, detail → edit, and detail/card → delete as separate journeys; prove delete cannot fall through into opening an empty modal.
 5. Pause after each slice according to the builder profile.
 6. Record decisions in the project rather than relying on chat history.
 7. Stop when approved scope is complete. Do not add deferred features.

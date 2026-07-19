@@ -17,6 +17,9 @@ Decision date: 2026-07-18
 | BOOK-03 | Operator updates and moves a book between boxes | Product book API | API integration test |
 | BOOK-04 | Deleting a book removes it and its vector linkage | Book service/vector repository | Transactional integration test |
 | BOOK-05 | Paging starts at 1, defaults to 20, and caps at 50 | Compatibility list contract | Contract boundary tests |
+| UX-02 | Every box card opens a box detail modal with inventory and operator actions | Browser entity presenter | Browser journey and UI structure test |
+| UX-03 | Every book card opens a book detail modal with cover and all available bibliographic metadata | Browser entity presenter | Browser journey and UI structure test |
+| UX-04 | Open, edit, and delete are separate controls; one event performs one action and successful delete closes stale modals | Browser action router | Disposable create/delete browser journey plus API lifecycle test |
 | AI-01 | JPEG, PNG, or WebP at or below 10 MiB can enter extraction | Candidate API | Upload validation tests |
 | AI-02 | GPT-5.6 structured output becomes pending candidates only | Candidate service/OpenAI adapter | Adapter fixture and repository test |
 | AI-03 | Invalid model output cannot create a candidate or book | Candidate service | Schema rejection test |

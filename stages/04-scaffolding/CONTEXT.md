@@ -17,9 +17,11 @@ Generate only the approved project structure, contracts, configuration boundarie
 1. Create the project under `output/node-project/`.
 2. Add public contracts and tests before concrete feature behavior.
 3. Add directories, interfaces, composition root, configuration schema, secret-safe environment template, migration shell, and run instructions required by the architecture.
-4. In skeleton mode, leave approved learner tasks explicit and test-described.
-5. In pair or complete mode, add only enough implementation for the project to compile or boot without pretending features are complete.
-6. Record generated files, unresolved placeholders, and the Stage 05 entry point.
+4. For every approved box or book UI, scaffold a dedicated primary card control, its entity detail modal, and a sibling operator action region; never nest edit/delete inside the primary control.
+5. Scaffold browser-structure tests that assert both detail modals and single-action routing before concrete CRUD behavior.
+6. In skeleton mode, leave approved learner tasks explicit and test-described.
+7. In pair or complete mode, add only enough implementation for the project to compile or boot without pretending features are complete.
+8. Record generated files, unresolved placeholders, and the Stage 05 entry point.
 
 ## Audit
 

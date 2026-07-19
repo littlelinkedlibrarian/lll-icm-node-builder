@@ -45,6 +45,10 @@ The operator creates, reads, updates, and deletes boxes. A box has a stable ID, 
 
 The operator creates, reads, updates, moves, and deletes books. A book has a stable ID, optional box ID, title, author, optional bibliographic fields, condition, AI provenance, and timestamps. Changes that affect the searchable representation schedule or perform a vector refresh. Deletion removes vector linkage.
 
+### Entity cards and detail modals
+
+Every box and every book has one dedicated primary card control that opens its own detail modal. A box detail modal presents description, location, counts, books, Assorted Things, and operator actions. A book detail modal presents cover, title, author, box, description, ISBN, genre, language, publication year, condition, catalog provenance, and operator actions. Edit and delete controls are siblings of the primary card control, never nested inside or multiplexed with it. One user event resolves to exactly one action. Successful deletion closes stale entity modals before refreshing lists; a failed deletion leaves the relevant detail context intact and displays the domain error. Anonymous visitors receive read-only details; operator actions appear only in the local management realm.
+
 ### GPT-5.6 scan-to-box
 
 1. The authenticated operator selects a destination box and supplies one supported image.
