@@ -28,6 +28,7 @@ The first journey begins in LLL Central, where a remote book or box result ident
 7. A narrow LLL-compatible read adapter for Central books, boxes, and box inventory.
 8. A Central aggregate result that links to the branded node and reflects changes after refresh.
 9. External contract, persistence, vector, outage, and journey evidence.
+10. Box-scoped Assorted Things photos that save manually first, accept optional OpenAI metadata suggestions, expose unknowns, and require human review without creating books.
 
 ## Connection path
 
@@ -51,7 +52,7 @@ The node represents multiple library boxes. Each public box may have its own con
 ## Technology and data
 
 - TypeScript application and responsive web UX.
-- SQLite owns users, boxes, books, candidates, audit, and idempotency state.
+- SQLite owns users, boxes, books, candidates, Assorted Things image history, audit, and idempotency state.
 - Pinned `sqlite-vec` owns local vectors keyed to canonical book IDs.
 - `gpt-5.6-sol` through the Responses API performs image understanding and structured extraction.
 - `text-embedding-3-small` produces 1,536-dimensional searchable vectors.
@@ -63,7 +64,7 @@ The project owner owns the code, application data, OpenAI usage, images, deploym
 ## Privacy and resilience
 
 - Public demo records contain no personal or precise private location data.
-- Raw images are temporary unless the user explicitly retains evidence.
+- Book-scan images are temporary. Assorted Things originals are explicitly retained as protected box history, bounded to 10 MiB each, and included in backup and deletion policy.
 - Model outputs remain candidates until human confirmation.
 - Keys remain server-side.
 - Manual CRUD and keyword search work without OpenAI.
@@ -91,7 +92,7 @@ The project owner owns the code, application data, OpenAI usage, images, deploym
 
 ## Open questions deferred to later approved stages
 
-- Final brand name and production hostname.
+- Production service routing and operator identity wiring.
 - Authentication provider for the public judge deployment.
 - Exact image retention duration.
 - Whether the judge build uses an isolated test account or self-registration.
@@ -105,3 +106,11 @@ The project owner owns the code, application data, OpenAI usage, images, deploym
 - Non-goals: PASS — infrastructure and advanced distributed behavior are deferred.
 
 Next allowed stage: Stage 02 specification.
+
+## Phase 1.5C capability amendment
+
+The owner approved a concrete Happy Box at `66 Colon Ave, St. Augustine, FL 32084` and the hostname `happybox.littlelinkedlibrarian.com`. The reference seed uses approximate public map coordinates `29.927154, -81.325848`; deployment remains a separate approval.
+
+Assorted Things follows the existing Central semantics reviewed in `active/happy`: it is box-scoped capture history, not a book scan or book journey. Manual capture must succeed before optional enrichment. The protected original, timestamp, box, human context, proposed metadata, explicit unknowns, review questions, provenance, and confirming actor are retained locally. Central compatibility exposes none of this private workflow.
+
+The branded application offers Garden, Terminal, and Cosmic themes. Theme choice is local presentation state and does not change domain behavior or the compatibility contract.

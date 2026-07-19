@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
-import type { Book, Box, CandidateFields, SearchMode } from "../domain/model.js";
-import type { Embedder, VectorIndex, VisionExtractor } from "../ports/index.js";
+import type { AssortedFields, Book, Box, CandidateFields, SearchMode } from "../domain/model.js";
+import type { AssortedExtractor, Embedder, VectorIndex, VisionExtractor } from "../ports/index.js";
 import { SqliteStore } from "../db/store.js";
 
 export class DomainError extends Error {
@@ -56,6 +56,48 @@ export class CandidateService {
     } catch (error) {
       if (error instanceof DomainError) throw error;
       throw new DomainError("openai_unavailable", 503, "Vision extraction is temporarily unavailable");
+    }
+  }
+}
+
+export function assortedFields(value: unknown): AssortedFields {
+  if (!value || typeof value !== "object") throw new DomainError("invalid_model_output", 502, "Assorted metadata is not an object");
+  const row = value as Record<string, unknown>;
+  if (typeof row.title !== "string" || !row.title.trim()) throw new DomainError("validation_error", 400, "A short item title is required");
+  const optional = (key: string) => row[key] === null || row[key] === undefined || row[key] === "" ? null : typeof row[key] === "string" ? row[key] : null;
+  const strings = (key: string) => Array.isArray(row[key]) ? row[key].filter((item): item is string => typeof item === "string" && Boolean(item.trim())).map(item => item.trim()).slice(0, 12) : [];
+  const quantity = row.quantity === null || row.quantity === undefined || row.quantity === "" ? null : Number(row.quantity);
+  if (quantity !== null && (!Number.isInteger(quantity) || quantity < 0 || quantity > 999)) throw new DomainError("validation_error", 400, "Quantity must be a whole number from 0 through 999");
+  return {
+    title: row.title.trim(), category: optional("category"), description: optional("description"),
+    tags: strings("tags"), condition: optional("condition"), quantity,
+    unknowns: strings("unknowns"), reviewQuestions: strings("reviewQuestions")
+  };
+}
+
+export class AssortedCaptureService {
+  constructor(private readonly store: SqliteStore, private readonly extractor?: AssortedExtractor) {}
+  async capture(input: { boxId: string; mimeType: string; bytes: Uint8Array; title?: string; note?: string }) {
+    if (!this.store.getBox(input.boxId)) throw new DomainError("box_not_found", 404, "Destination box does not exist");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(input.mimeType)) throw new DomainError("unsupported_image", 400, "Use JPEG, PNG, or WebP");
+    if (!input.bytes.length || input.bytes.length > 10 * 1024 * 1024) throw new DomainError("invalid_image_size", 400, "Image must be 1 byte through 10 MiB");
+    const manualTitle = input.title?.trim() || "Unidentified item";
+    const manualNote = input.note?.trim() || null;
+    const initial = assortedFields({
+      title: manualTitle, category: null, description: manualNote, tags: [], condition: null, quantity: null,
+      unknowns: ["category", "condition", "quantity"],
+      reviewQuestions: ["What is this item?", "How many are present?", "Is it ready to share?"]
+    });
+    const stored = this.store.createAssorted({ boxId: input.boxId, mimeType: input.mimeType, bytes: input.bytes, fields: initial });
+    if (!this.extractor) return stored;
+    try {
+      const extracted = await this.extractor.extractAssorted({ mimeType: input.mimeType, bytes: input.bytes });
+      const proposed = assortedFields(extracted.fields);
+      return this.store.enrichAssorted(stored.id, {
+        ...proposed, title: input.title?.trim() || proposed.title, description: manualNote ?? proposed.description
+      }, extracted.provenance) ?? stored;
+    } catch {
+      return stored;
     }
   }
 }

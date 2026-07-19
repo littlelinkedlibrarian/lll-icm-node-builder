@@ -138,7 +138,7 @@ paths:
       security: [{ operatorToken: [] }]
       responses:
         "204": { description: Empty box deleted. }
-        "409": { description: Box contains books. }
+        "409": { description: Box contains books or Assorted Things captures. }
   /api/manage/books:
     get:
       operationId: listManagedBooks
@@ -202,6 +202,52 @@ paths:
       security: [{ operatorToken: [] }]
       responses:
         "200": { description: Idempotently confirmed candidate and canonical book. }
+  /api/manage/assorted/analyze:
+    post:
+      operationId: captureAssortedThing
+      description: Saves the box-scoped image and manual context before optional OpenAI enrichment. Never creates a book.
+      security: [{ operatorToken: [] }]
+      responses:
+        "201": { description: Pending human-review capture saved. }
+  /api/manage/assorted:
+    get:
+      operationId: listAssortedCaptures
+      description: Lists private box capture history, optionally filtered by boxId and review state.
+      security: [{ operatorToken: [] }]
+      responses:
+        "200": { description: Assorted Things captures returned. }
+  /api/manage/assorted/{id}:
+    get:
+      operationId: getAssortedCapture
+      security: [{ operatorToken: [] }]
+      responses:
+        "200": { description: Capture metadata returned. }
+    patch:
+      operationId: correctAssortedCapture
+      description: Replaces proposed metadata while the capture awaits review.
+      security: [{ operatorToken: [] }]
+      responses:
+        "200": { description: Pending metadata corrected. }
+  /api/manage/assorted/{id}/image:
+    get:
+      operationId: getAssortedCaptureImage
+      description: Returns the protected original image from local node storage.
+      security: [{ operatorToken: [] }]
+      responses:
+        "200": { description: Original JPEG, PNG, or WebP bytes. }
+  /api/manage/assorted/{id}/reject:
+    post:
+      operationId: rejectAssortedCapture
+      security: [{ operatorToken: [] }]
+      responses:
+        "200": { description: Capture rejected but retained in box history. }
+  /api/manage/assorted/{id}/confirm:
+    post:
+      operationId: confirmAssortedCapture
+      description: Idempotently records human approval without publishing a book.
+      security: [{ operatorToken: [] }]
+      responses:
+        "200": { description: Capture confirmed. }
 components:
   securitySchemes:
     operatorToken:

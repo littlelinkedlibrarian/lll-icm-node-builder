@@ -1,6 +1,7 @@
 export type Visibility = "public" | "private";
 export type CandidateState = "pending" | "confirmed" | "rejected";
 export type SearchMode = "semantic" | "keyword" | "keyword_fallback";
+export type AssortedCaptureState = "pending_review" | "confirmed" | "rejected";
 
 export interface Box {
   id: string;
@@ -47,6 +48,32 @@ export interface ScanCandidate {
   fields: CandidateFields;
   provenance: Record<string, unknown>;
   approvedBookId: string | null;
+  idempotencyKey: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AssortedFields {
+  title: string;
+  category: string | null;
+  description: string | null;
+  tags: string[];
+  condition: string | null;
+  quantity: number | null;
+  unknowns: string[];
+  reviewQuestions: string[];
+}
+
+export interface AssortedCapture {
+  id: string;
+  boxId: string;
+  state: AssortedCaptureState;
+  mimeType: string;
+  imageSha256: string;
+  fields: AssortedFields;
+  aiProcessed: boolean;
+  provenance: Record<string, unknown>;
+  actor: string | null;
   idempotencyKey: string | null;
   createdAt: string;
   updatedAt: string;

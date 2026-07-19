@@ -14,9 +14,9 @@
         <span><strong id="node-name">Little Green Library</strong><small>Books belong in motion.</small></span>
       </a>
       <nav aria-label="Primary navigation">
-        <a href="#boxes">Boxes</a><a href="#catalog">Catalog</a><a href="#scanner">Scanner</a>
+        <a href="#boxes">Boxes</a><a href="#catalog">Catalog</a><a href="#scanner">Scanner</a><a href="#assorted">Assorted Things</a>
       </nav>
-      <button class="button button-quiet" id="operator-button" type="button">Operator access</button>
+      <div class="header-tools"><label class="theme-picker"><span class="sr-only">Visual theme</span><select id="theme-select" aria-label="Visual theme"><option value="garden">Garden</option><option value="terminal">Terminal</option><option value="cosmic">Cosmic</option></select></label><button class="button button-quiet" id="operator-button" type="button">Operator access</button></div>
     </header>
 
     <main>
@@ -64,6 +64,19 @@
         </form>
       </section>
 
+      <section class="section assorted-section" id="assorted">
+        <div class="section-heading"><div><p class="eyebrow">Photo first · certainty second</p><h2>Assorted Things</h2><p class="section-intro">Save a box snapshot even when AI cannot identify everything. OpenAI may suggest metadata, but a neighbor reviews every unknown before confirmation.</p></div><span class="terminal-prompt" aria-hidden="true">capture --human-gate</span></div>
+        <div class="assorted-layout">
+          <form class="assorted-capture" id="assorted-form">
+            <label>Box<select id="assorted-box" required><option value="">Choose a box</option></select></label>
+            <label class="drop-zone assorted-drop" for="assorted-image"><span class="drop-icon">◌</span><strong>Capture assorted things</strong><small>The original image stays in this node · JPEG, PNG, or WebP</small><input id="assorted-image" type="file" accept="image/jpeg,image/png,image/webp" required></label>
+            <div class="form-pair"><label>What do you call it?<input id="assorted-title" placeholder="Optional — Unidentified item is okay"></label><label>Neighbor note<input id="assorted-note" placeholder="Where it was found, what needs review…"></label></div>
+            <button class="button button-primary" type="submit">Save photo + propose metadata</button><p class="form-status" id="assorted-status"></p>
+          </form>
+          <div><div class="assorted-toolbar"><p><strong id="assorted-count">0</strong> captures in this node</p><select id="assorted-filter" aria-label="Filter Assorted Things"><option value="">All states</option><option value="pending_review">Needs review</option><option value="confirmed">Confirmed</option><option value="rejected">Rejected</option></select></div><div class="assorted-grid" id="assorted-grid" aria-live="polite"><div class="operator-nudge">Connect operator access to review private box captures.</div></div></div>
+        </div>
+      </section>
+
       <section class="section network-note"><div><p class="eyebrow">Independent and connected</p><h2>Your domain. Your database.<br>One compatible doorway.</h2></div><p>This node keeps working when Central or OpenAI is unavailable. Its public OpenAPI reads let LLL Central show current public boxes and books without copying them.</p></section>
     </main>
 
@@ -76,6 +89,8 @@
     <dialog id="book-dialog"><form method="dialog" class="dialog-card data-form" id="book-form"><button class="dialog-close" value="cancel" aria-label="Close">×</button><p class="eyebrow">Manual path</p><h3>Add a book</h3><label>Box<select name="boxId" class="box-options" required></select></label><label>Title<input name="title" required></label><label>Author<input name="author" required></label><div class="form-pair"><label>ISBN<input name="isbn"></label><label>Genre<input name="genre"></label></div><label>Description<textarea name="description"></textarea></label><div class="form-pair"><label>Language<input name="language" placeholder="en"></label><label>Condition<select name="condition"><option value="good">Good</option><option value="like_new">Like new</option><option value="fair">Fair</option><option value="poor">Poor</option><option value="new">New</option></select></label></div><button class="button button-primary" value="default">Add book</button><p class="form-status"></p></form></dialog>
 
     <dialog id="candidate-dialog"><form method="dialog" class="dialog-card data-form" id="candidate-form"><button class="dialog-close" value="cancel" aria-label="Close">×</button><p class="eyebrow">Review required</p><h3>Check the proposed record</h3><input name="candidateId" type="hidden"><input name="boxId" type="hidden"><label>Title<input name="title" required></label><label>Author<input name="author" required></label><div class="form-pair"><label>ISBN<input name="isbn"></label><label>Genre<input name="genre"></label></div><label>Description<textarea name="description"></textarea></label><div class="form-pair"><label>Language<input name="language"></label><label>Condition<input name="condition"></label></div><div class="dialog-actions"><button class="button button-danger" id="reject-candidate" type="button">Reject</button><button class="button button-primary" value="default">Confirm into box</button></div><p class="form-status"></p></form></dialog>
+
+    <dialog id="assorted-dialog"><form method="dialog" class="dialog-card data-form" id="assorted-review-form"><button class="dialog-close" value="cancel" aria-label="Close">×</button><p class="eyebrow">Human review gate</p><h3>Review this Assorted Thing</h3><input name="captureId" type="hidden"><div class="review-image"><img id="assorted-review-image" alt="Assorted Things capture awaiting review"></div><label>Title<input name="title" required></label><div class="form-pair"><label>Category<input name="category"></label><label>Quantity<input name="quantity" type="number" min="0" max="999"></label></div><label>Description<textarea name="description"></textarea></label><div class="form-pair"><label>Condition<input name="condition"></label><label>Tags<input name="tags" placeholder="toy, outdoor, blue"></label></div><div class="uncertainty-panel"><strong>Still uncertain</strong><ul id="assorted-unknowns"></ul><strong>Questions for a human</strong><ul id="assorted-questions"></ul></div><div class="dialog-actions"><button class="button button-danger" id="reject-assorted" type="button">Reject</button><button class="button button-primary" value="default">Confirm metadata</button></div><p class="form-status"></p></form></dialog>
 
     <template id="empty-template"><div class="empty-state"><span>⌂</span><h3>Nothing here yet</h3><p>Start with a box, then help a book find its next reader.</p></div></template>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>

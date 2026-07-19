@@ -1,6 +1,6 @@
 import OpenAI from "openai";
-import type { CandidateFields } from "../domain/model.js";
-import type { Embedder, VisionExtractor } from "../ports/index.js";
+import type { AssortedFields, CandidateFields } from "../domain/model.js";
+import type { AssortedExtractor, Embedder, VisionExtractor } from "../ports/index.js";
 
 const candidateSchema = {
   type: "object",
@@ -14,7 +14,19 @@ const candidateSchema = {
   }
 } as const;
 
-export class OpenAIVisionExtractor implements VisionExtractor {
+const assortedSchema = {
+  type: "object", additionalProperties: false,
+  required: ["title", "category", "description", "tags", "condition", "quantity", "unknowns", "reviewQuestions"],
+  properties: {
+    title: { type: "string" }, category: { type: ["string", "null"] },
+    description: { type: ["string", "null"] }, tags: { type: "array", items: { type: "string" } },
+    condition: { type: ["string", "null"] }, quantity: { type: ["integer", "null"], minimum: 0, maximum: 999 },
+    unknowns: { type: "array", items: { type: "string" } },
+    reviewQuestions: { type: "array", items: { type: "string" } }
+  }
+} as const;
+
+export class OpenAIVisionExtractor implements VisionExtractor, AssortedExtractor {
   private readonly client: OpenAI;
   constructor(apiKey: string, private readonly model = "gpt-5.6-sol") { this.client = new OpenAI({ apiKey }); }
   async extract(image: { mimeType: string; bytes: Uint8Array }): Promise<{ fields: CandidateFields; provenance: Record<string, unknown> }> {
@@ -35,6 +47,7 @@ export class OpenAIVisionExtractor implements VisionExtractor {
       provenance: { provider: "openai", model: this.model, responseId: response.id, extractedAt: new Date().toISOString() }
     };
   }
+  async extractAssorted(image: { mimeType: string; bytes: Uint8Array }): Promise<{ fields: AssortedFields; provenance: Record<string, unknown> }> { const imageUrl = "data:" + image.mimeType + ";base64," + Buffer.from(image.bytes).toString("base64"); const response = await this.client.responses.create({ model: this.model, input: [{ role: "user", content: [{ type: "input_text", text: "Review this box-scoped Assorted Things photo. Suggest only visibly supported metadata. Use null for unsupported scalar values. List important uncertainty in unknowns and ask short human review questions. Never infer ownership, value, safety, exact material, brand, or identity without visible evidence. This is not a book record." }, { type: "input_image", image_url: imageUrl, detail: "high" }] }], text: { format: { type: "json_schema", name: "assorted_capture", strict: true, schema: assortedSchema } } }); return { fields: JSON.parse(response.output_text) as AssortedFields, provenance: { provider: "openai", model: this.model, responseId: response.id, extractedAt: new Date().toISOString(), purpose: "assorted-things-review" } }; }
 }
 
 export class OpenAIEmbedder implements Embedder {

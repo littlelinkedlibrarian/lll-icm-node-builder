@@ -39,6 +39,12 @@ Decision date: 2026-07-18
 | AUD-01 | Candidate confirmation and CRUD writes record actor and correlation/idempotency data | Audit service | Repository integration test |
 | REC-01 | Backup, restore, export, and deletion instructions are usable | Release packet | Observed recovery drill |
 | MCP-01 | Phase 1.5B tools reuse application services and declare impact accurately | MCP adapter | Inspector and metadata tests |
+| THING-01 | An Assorted Things photo and manual note persist before optional AI runs | Assorted capture service | No-key API integration test and image byte comparison |
+| THING-02 | OpenAI suggestions use bounded fields, explicit unknowns, questions, and provenance | OpenAI adapter/capture service | Fake-adapter integration test and strict schema inspection |
+| THING-03 | Operator can edit, reject, or idempotently confirm; no transition creates a book | Assorted capture service | State, idempotency, and zero-book assertions |
+| THING-04 | Original images require local operator auth and captures never enter Central-compatible reads | Auth/storage/compatibility boundaries | Authorization and route exposure tests |
+| THING-05 | A box with capture history cannot be deleted accidentally | Box repository | Conflict integration test |
+| UX-01 | Garden, Terminal, and Cosmic themes are keyboard selectable and persist locally | Browser application | UI static checks and observed browser journey |
 
 ## Stage 02 checkpoint
 
@@ -49,4 +55,4 @@ The owner-approved Phase 1.5 plan already selects these boundaries. Later change
 - Every required row has an observable external test.
 - Product, compatibility, AI, vector, deployment, and Central owners are distinct.
 - No deferred distributed capability appears as required behavior.
-- Candidate confirmation is the only AI-to-canonical transition.
+- Human confirmation is the only AI-to-book transition; Assorted Things AI output remains an editable proposal on an already-saved manual capture.

@@ -41,3 +41,7 @@ When selected, use OpenAI vision to create a bounded descriptor and an OpenAI em
 ## Resilience
 
 Keep keys server-side. Limit data, size, rate, timeout, and retries. Queue slow work. Keep manual catalog behavior working without OpenAI. Production never returns fixture data as a successful extraction.
+
+## Uncertain object metadata
+
+For Assorted Things or mixed-object images, require the model to distinguish visible evidence from uncertainty. Use null for unsupported scalar fields, emit explicit `unknowns`, and ask short `reviewQuestions`. Never invent ownership, price, safety, brand, exact material, identity, or location. Save the manual capture before the model call, retain the original under the approved media policy, and require a human decision. This workflow must remain separate from book extraction.

@@ -9,13 +9,15 @@ export function openDatabase(path: string): DatabaseSync {
   db.exec("PRAGMA foreign_keys = ON; PRAGMA journal_mode = WAL;");
   sqliteVec.load(db);
   db.exec("CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)");
-  const applied = db.prepare("SELECT 1 FROM schema_migrations WHERE version = 1").get();
-  if (!applied) {
-    const sql = readFileSync(new URL("../../migrations/001_initial.sql", import.meta.url), "utf8");
+  for (const migration of ["001_initial.sql", "002_assorted_things.sql"]) {
+    const version = Number(migration.slice(0, 3));
+    const applied = db.prepare("SELECT 1 FROM schema_migrations WHERE version = ?").get(version);
+    if (applied) continue;
+    const sql = readFileSync(new URL(`../../migrations/${migration}`, import.meta.url), "utf8");
     db.exec("BEGIN IMMEDIATE");
     try {
       db.exec(sql);
-      db.prepare("INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(1, new Date().toISOString());
+      db.prepare("INSERT INTO schema_migrations(version, applied_at) VALUES (?, ?)").run(version, new Date().toISOString());
       db.exec("COMMIT");
     } catch (error) {
       db.exec("ROLLBACK");

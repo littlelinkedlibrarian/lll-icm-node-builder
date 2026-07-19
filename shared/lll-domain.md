@@ -27,3 +27,9 @@ Authentication, AI, vectors, public deployment, and federation are capability ch
 - Keep metadata, storage, OpenAI, and discovery behind adapters.
 - Route agent writes through normal permission paths.
 - Treat registry and mesh discovery as provider choices.
+
+## Assorted Things and other approved items
+
+An Assorted Things capture is box-scoped photo history, not a book or book journey. Preserve the original, time, box, human label/note, proposed fields, uncertainty, provenance, and reviewer decision. Save the manual record before enrichment, keep AI optional, and never let enrichment failure block capture.
+
+Use separate entities and routes for captures and books. Confirmation records human review; it does not silently create inventory. Keep protected image access out of public compatibility contracts. Ask the learner whether media belongs in SQLite, local files, or object storage based on scale, backup, and deployment needs; keep that choice behind a port.

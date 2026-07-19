@@ -66,3 +66,7 @@ The LLL domain references are original adaptations informed by the Little Linked
 ## License
 
 MIT. See `LICENSE`.
+
+## Phase 1.5C reference experience
+
+The checked-in reference run now includes a Happy Box seed for `66 Colon Ave, St. Augustine, FL 32084`, protected Assorted Things capture/review, and Garden, Terminal, and Cosmic themes. Assorted Things preserves manual box history before optional OpenAI enrichment and stays outside the LLL-compatible public reads.

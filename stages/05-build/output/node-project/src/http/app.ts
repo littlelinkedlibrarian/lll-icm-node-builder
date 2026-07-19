@@ -2,12 +2,12 @@ import Fastify, { type FastifyReply, type FastifyRequest } from "fastify";
 import { readFileSync } from "node:fs";
 import type { DatabaseSync } from "node:sqlite";
 import type { AppConfig } from "../config.js";
-import type { Book, Box } from "../domain/model.js";
-import { CandidateService, DomainError, SearchService, candidateFields, limit, page, validateBook, validateBox } from "../application/services.js";
+import type { AssortedCapture, Book, Box } from "../domain/model.js";
+import { AssortedCaptureService, CandidateService, DomainError, SearchService, assortedFields, candidateFields, limit, page, validateBook, validateBox } from "../application/services.js";
 import { readiness } from "../db/database.js";
 import { SqliteStore } from "../db/store.js";
 import { handleMcpRequest } from "../mcp/server.js";
-import type { Embedder, VisionExtractor } from "../ports/index.js";
+import type { AssortedExtractor, Embedder, VisionExtractor } from "../ports/index.js";
 
 type Id = { id: string };
 type Paging = { page?: string; limit?: string };
@@ -36,9 +36,10 @@ const compatibleBook = (book: Book) => ({
   updatedAt: book.updatedAt
 });
 
-export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: SqliteStore; vision?: VisionExtractor; embedder?: Embedder }) {
+export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: SqliteStore; vision?: VisionExtractor; assorted?: AssortedExtractor; embedder?: Embedder }) {
   const app = Fastify({ logger: false });
   const candidates = new CandidateService(input.store, input.vision);
+  const assorted = new AssortedCaptureService(input.store, input.assorted);
   const search = new SearchService(input.store, input.store, input.embedder);
   const auth = async (request: FastifyRequest, reply: FastifyReply) => {
     if (!input.config.operatorToken || request.headers.authorization !== `Bearer ${input.config.operatorToken}`) {
@@ -131,7 +132,7 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
   });
   app.delete("/api/manage/boxes/:id", { preHandler: auth }, async (request, reply) => {
     const result = input.store.delete((request.params as Id).id);
-    if (result === "not_empty") return reply.code(409).send({ error: "box_not_empty", message: "Move or remove books first" });
+    if (result === "not_empty") return reply.code(409).send({ error: "box_not_empty", message: "Move or remove books and Assorted Things captures first" });
     if (result === "missing") return reply.code(404).send({ error: "not_found", message: "Box not found" });
     return reply.code(204).send();
   });
@@ -159,7 +160,7 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
   app.post("/api/manage/demo/seed", { preHandler: auth }, async () => {
     const fixtures = [
       { name: "Garden Gate Library", description: "Stories beside the community herb garden.", location: "Garden north entrance", latitude: 39.7392, longitude: -104.9903 },
-      { name: "Happy Corner Box", description: "Picture books, small adventures, and neighborhood favorites.", location: "Happy Corner", latitude: 39.7421, longitude: -104.9821 }
+      { name: "Happy Box", description: "Books, useful surprises, and neighbor-made discoveries in St. Augustine.", location: "66 Colon Ave, St. Augustine, FL 32084", latitude: 29.927154, longitude: -81.325848 }
     ];
     const boxes = fixtures.map(fixture => input.store.listBoxes(1, 50).data.find(box => box.name === fixture.name) ?? input.store.create({ ...fixture, visibility: "public" as const }));
     const books = [
@@ -206,6 +207,41 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
     try { await search.index(result.book); } catch { /* retry in a later job adapter */ }
     return result;
   });
+  app.post("/api/manage/assorted/analyze", { preHandler: auth, bodyLimit: 14 * 1024 * 1024 }, async (request, reply) => {
+    const body = request.body as { boxId: string; mimeType: string; imageBase64: string; title?: string; note?: string };
+    const value = await assorted.capture({ ...body, bytes: Buffer.from(body.imageBase64, "base64") });
+    return reply.code(201).send(value);
+  });
+  app.get("/api/manage/assorted", { preHandler: auth }, async (request) => {
+    const q = request.query as { boxId?: string; state?: AssortedCapture["state"] };
+    if (q.state && !["pending_review", "confirmed", "rejected"].includes(q.state)) throw new DomainError("validation_error", 400, "Unknown review state");
+    return { data: input.store.listAssorted(q.boxId, q.state) };
+  });
+  app.get("/api/manage/assorted/:id", { preHandler: auth }, async (request, reply) => {
+    return input.store.getAssorted((request.params as Id).id) ?? reply.code(404).send({ error: "not_found", message: "Assorted capture not found" });
+  });
+  app.get("/api/manage/assorted/:id/image", { preHandler: auth }, async (request, reply) => {
+    const value = input.store.getAssortedImage((request.params as Id).id);
+    return value ? reply.type(value.mimeType).send(Buffer.from(value.bytes)) : reply.code(404).send({ error: "not_found", message: "Assorted capture image not found" });
+  });
+  app.patch("/api/manage/assorted/:id", { preHandler: auth }, async (request, reply) => {
+    const value = input.store.updateAssorted((request.params as Id).id, assortedFields(request.body));
+    return value ?? reply.code(409).send({ error: "invalid_assorted_state", message: "Only pending Assorted Things can be edited" });
+  });
+  app.post("/api/manage/assorted/:id/reject", { preHandler: auth }, async (request, reply) => {
+    const value = input.store.rejectAssorted((request.params as Id).id);
+    return value ?? reply.code(409).send({ error: "invalid_assorted_state", message: "Only pending Assorted Things can be rejected" });
+  });
+  app.post("/api/manage/assorted/:id/confirm", { preHandler: auth }, async (request) => {
+    const body = request.body as { actor: string; idempotencyKey: string };
+    if (!body.actor?.trim() || !body.idempotencyKey?.trim()) throw new DomainError("validation_error", 400, "Actor and idempotencyKey are required");
+    try { return input.store.confirmAssorted((request.params as Id).id, body.actor, body.idempotencyKey); }
+    catch (error) {
+      if (error instanceof Error && ["invalid_assorted_state", "idempotency_conflict"].includes(error.message)) throw new DomainError(error.message, 409, "Assorted capture cannot be confirmed in its current state");
+      throw error;
+    }
+  });
+
   app.get("/api/search", async (request) => {
     const q = request.query as { q?: string; boxId?: string };
     return search.search(q.q ?? "", q.boxId);

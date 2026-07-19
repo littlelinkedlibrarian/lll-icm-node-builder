@@ -19,12 +19,17 @@ describe("branded browser application", () => {
     const home = await app.inject({ method: "GET", url: "/" });
     expect(home.headers["content-type"]).toContain("text/html");
     expect(home.body).toContain("A library node with a life of its own");
+    expect(home.body).toContain("Assorted Things");
+    expect(home.body).toContain("Terminal");
+    expect(home.body).toContain("Cosmic");
     expect((await app.inject({ method: "GET", url: "/assets/app.js" })).body).toContain("GPT-5.6 is preparing");
     expect((await app.inject({ method: "GET", url: "/api/meta" })).json()).toMatchObject({ name: "Judge Box", compatibilityVersion: "0.1.0" });
     expect((await app.inject({ method: "POST", url: "/api/manage/demo/seed", payload: {} })).statusCode).toBe(401);
     const request = { method: "POST" as const, url: "/api/manage/demo/seed", headers: { authorization: "Bearer secret" }, payload: {} };
     expect((await app.inject(request)).json()).toEqual({ boxes: 2, books: 3 });
     expect((await app.inject(request)).json()).toEqual({ boxes: 2, books: 3 });
+    const managedBoxes = (await app.inject({ method: "GET", url: "/api/manage/boxes", headers: { authorization: "Bearer secret" } })).json();
+    expect(managedBoxes.data).toEqual(expect.arrayContaining([expect.objectContaining({ name: "Happy Box", location: "66 Colon Ave, St. Augustine, FL 32084", latitude: 29.927154, longitude: -81.325848 })]));
     expect((await app.inject({ method: "GET", url: "/api/manage/books", headers: { authorization: "Bearer secret" } })).json()).toMatchObject({ pagination: { total: 3 } });
     await app.close();
   });

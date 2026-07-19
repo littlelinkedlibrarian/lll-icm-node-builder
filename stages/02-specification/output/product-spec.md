@@ -22,7 +22,7 @@ The learning policy requires explicit `uiUrl` and `apiBaseUrl`; current Central 
 - Anonymous visitor: reads public boxes and books and uses keyword or semantic search.
 - Local operator: authenticates locally and performs box, book, candidate, and configuration writes.
 - Central: anonymous or separately authenticated consumer of the narrow public compatibility adapter.
-- GPT-5.6 adapter: prepares candidates only.
+- GPT-5.6 adapter: prepares book candidates and Assorted Things metadata proposals only.
 - Embedding adapter: creates vectors only for confirmed canonical books.
 - MCP caller: Phase 1.5B adapter using the same operator permissions and application services.
 
@@ -66,6 +66,7 @@ Product writes require local operator authentication. Controllers validate and d
 - Full box CRUD.
 - Full book CRUD, including moving a book between boxes.
 - Candidate analysis, list, fetch, edit, reject, and confirm.
+- Protected Assorted Things capture, image read, list/filter, edit, reject, and idempotent confirm; these routes never create books and are not Central-compatible public reads.
 - Keyword and semantic search.
 - Export and operational endpoints required by release scope.
 
@@ -102,7 +103,7 @@ A book can exist without a vector. Missing vectors never hide it from keyword se
 
 ### Images
 
-Accepted formats are JPEG, PNG, and WebP. Default maximum size is 10 MiB. Raw image bytes are temporary during Phase 1.5A tests and are not stored as canonical book data.
+Accepted formats are JPEG, PNG, and WebP. Default maximum size is 10 MiB. Book-scan image bytes are temporary and are not canonical book data. Assorted Things originals are deliberately retained as protected box history in the reference SQLite media adapter, limited to 10 MiB each. A future object-storage adapter may replace the BLOB without changing the application port.
 
 ## Error and degraded modes
 
@@ -110,7 +111,7 @@ Accepted formats are JPEG, PNG, and WebP. Default maximum size is 10 MiB. Raw im
 - Authentication: 401.
 - Permission: 403.
 - Missing record: 404.
-- Delete non-empty box or duplicate idempotency conflict: 409.
+- Delete a box containing books or Assorted Things captures, or duplicate idempotency conflict: 409.
 - OpenAI unavailable: candidate request returns a retryable service error; manual entry remains available.
 - Embedding unavailable: canonical write succeeds, vector state becomes pending/failed, and keyword search remains available.
 - Central unavailable: local application behavior is unchanged.
@@ -142,3 +143,18 @@ Full federation, rank fusion, raw vector exchange, Istio expansion, hosted contr
 - Network policy: PASS — eligibility, geography, heartbeat, health, and realm separation are testable.
 
 Next allowed stage: Stage 03 architecture.
+
+## Phase 1.5C approved amendment
+
+### Assorted Things capture and review
+
+1. The authenticated operator chooses a box, photo, and optional human label or note.
+2. The node stores the original and manual pending-review record before contacting OpenAI.
+3. When configured, the OpenAI adapter proposes a bounded title, category, description, tags, condition, quantity, explicit unknowns, and questions. Unsupported facts remain null; ownership, value, safety, brand, material, and identity are never invented.
+4. OpenAI failure leaves the saved manual capture usable.
+5. The operator edits, rejects, or idempotently confirms the capture. Confirmation records review; it never creates a book.
+6. Captures and images require the local operator token and never appear in the six Central compatibility reads.
+
+### Branded presentation
+
+Garden is the accessible warm default. Terminal and Cosmic are alternate code-native themes. The browser persists the selected theme locally; keyboard access, readable contrast, and domain behavior remain consistent across themes.

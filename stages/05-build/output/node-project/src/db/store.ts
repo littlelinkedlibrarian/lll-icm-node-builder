@@ -1,7 +1,7 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { DatabaseSync, SQLInputValue } from "node:sqlite";
-import type { Book, Box, CandidateFields, ScanCandidate, Visibility } from "../domain/model.js";
-import type { CandidateRepository, Page, VectorIndex } from "../ports/index.js";
+import type { AssortedCapture, AssortedFields, Book, Box, CandidateFields, ScanCandidate, Visibility } from "../domain/model.js";
+import type { AssortedCaptureRepository, CandidateRepository, Page, VectorIndex } from "../ports/index.js";
 
 type Row = Record<string, unknown>;
 const now = () => new Date().toISOString();
@@ -37,7 +37,18 @@ function candidateFrom(row: Row): ScanCandidate {
   };
 }
 
-export class SqliteStore implements CandidateRepository, VectorIndex {
+function assortedFrom(row: Row): AssortedCapture {
+  return {
+    id: String(row.id), boxId: String(row.box_id), state: String(row.state) as AssortedCapture["state"],
+    mimeType: String(row.mime_type), imageSha256: String(row.image_sha256),
+    fields: JSON.parse(String(row.fields)) as AssortedFields, aiProcessed: Boolean(row.ai_processed),
+    provenance: JSON.parse(String(row.provenance)) as Record<string, unknown>,
+    actor: text(row.actor), idempotencyKey: text(row.idempotency_key),
+    createdAt: String(row.created_at), updatedAt: String(row.updated_at)
+  };
+}
+
+export class SqliteStore implements CandidateRepository, AssortedCaptureRepository, VectorIndex {
   constructor(private readonly db: DatabaseSync) {}
 
   create(input: Omit<Box, "id" | "createdAt" | "updatedAt">): Box;
@@ -122,7 +133,7 @@ export class SqliteStore implements CandidateRepository, VectorIndex {
 
   delete(id: string): boolean | "deleted" | "missing" | "not_empty" {
     if (this.getBox(id)) {
-      const count = this.db.prepare("SELECT COUNT(*) total FROM books WHERE box_id=?").get(id) as Row;
+      const count = this.db.prepare("SELECT (SELECT COUNT(*) FROM books WHERE box_id=?) + (SELECT COUNT(*) FROM assorted_captures WHERE box_id=?) total").get(id, id) as Row;
       if (Number(count.total) > 0) return "not_empty";
       return this.db.prepare("DELETE FROM boxes WHERE id=?").run(id).changes ? "deleted" : "missing";
     }
@@ -193,6 +204,73 @@ export class SqliteStore implements CandidateRepository, VectorIndex {
       );
       this.db.exec("COMMIT");
       return { candidate: this.getCandidate(id)!, book };
+    } catch (error) { this.db.exec("ROLLBACK"); throw error; }
+  }
+
+  createAssorted(input: { boxId: string; mimeType: string; bytes: Uint8Array; fields: AssortedFields }): AssortedCapture {
+    const id = randomUUID(), timestamp = now();
+    const image = Buffer.from(input.bytes);
+    this.db.prepare("INSERT INTO assorted_captures(id,box_id,state,mime_type,image,image_sha256,fields,ai_processed,provenance,created_at,updated_at) VALUES (?,?,?,?,?,?,?,0,?,?,?)").run(
+      id, input.boxId, "pending_review", input.mimeType, image, createHash("sha256").update(image).digest("hex"), JSON.stringify(input.fields), JSON.stringify({ mode: "manual" }), timestamp, timestamp
+    );
+    return this.getAssorted(id)!;
+  }
+
+  getAssorted(id: string): AssortedCapture | undefined {
+    const row = this.db.prepare("SELECT * FROM assorted_captures WHERE id=?").get(id) as Row | undefined;
+    return row ? assortedFrom(row) : undefined;
+  }
+
+  listAssorted(boxId?: string, state?: AssortedCapture["state"]): AssortedCapture[] {
+    const terms: string[] = [], params: SQLInputValue[] = [];
+    if (boxId) { terms.push("box_id=?"); params.push(boxId); }
+    if (state) { terms.push("state=?"); params.push(state); }
+    const where = terms.length ? " WHERE " + terms.join(" AND ") : "";
+    return (this.db.prepare("SELECT * FROM assorted_captures" + where + " ORDER BY created_at DESC").all(...params) as Row[]).map(assortedFrom);
+  }
+
+  getAssortedImage(id: string): { mimeType: string; bytes: Uint8Array } | undefined {
+    const row = this.db.prepare("SELECT mime_type,image FROM assorted_captures WHERE id=?").get(id) as Row | undefined;
+    return row ? { mimeType: String(row.mime_type), bytes: row.image as Uint8Array } : undefined;
+  }
+
+  enrichAssorted(id: string, fields: AssortedFields, provenance: Record<string, unknown>): AssortedCapture | undefined {
+    const capture = this.getAssorted(id);
+    if (!capture || capture.state !== "pending_review") return undefined;
+    this.db.prepare("UPDATE assorted_captures SET fields=?,ai_processed=1,provenance=?,updated_at=? WHERE id=?").run(JSON.stringify(fields), JSON.stringify(provenance), now(), id);
+    return this.getAssorted(id);
+  }
+
+  updateAssorted(id: string, fields: AssortedFields): AssortedCapture | undefined {
+    const capture = this.getAssorted(id);
+    if (!capture || capture.state !== "pending_review") return undefined;
+    this.db.prepare("UPDATE assorted_captures SET fields=?,updated_at=? WHERE id=?").run(JSON.stringify(fields), now(), id);
+    return this.getAssorted(id);
+  }
+
+  rejectAssorted(id: string): AssortedCapture | undefined {
+    const capture = this.getAssorted(id);
+    if (!capture || capture.state !== "pending_review") return undefined;
+    this.db.prepare("UPDATE assorted_captures SET state=?,updated_at=? WHERE id=?").run("rejected", now(), id);
+    return this.getAssorted(id);
+  }
+
+  confirmAssorted(id: string, actor: string, idempotencyKey: string): AssortedCapture {
+    const existing = this.db.prepare("SELECT * FROM assorted_captures WHERE idempotency_key=?").get(idempotencyKey) as Row | undefined;
+    if (existing) {
+      const capture = assortedFrom(existing);
+      if (capture.id !== id) throw new Error("idempotency_conflict");
+      return capture;
+    }
+    const capture = this.getAssorted(id);
+    if (!capture || capture.state !== "pending_review") throw new Error("invalid_assorted_state");
+    const timestamp = now();
+    this.db.exec("BEGIN IMMEDIATE");
+    try {
+      this.db.prepare("UPDATE assorted_captures SET state=?,actor=?,idempotency_key=?,updated_at=? WHERE id=?").run("confirmed", actor, idempotencyKey, timestamp, id);
+      this.db.prepare("INSERT INTO audit_events VALUES (?,?,?,?,?,?,?)").run(randomUUID(), actor, "assorted.confirm", "assorted_capture", id, idempotencyKey, timestamp);
+      this.db.exec("COMMIT");
+      return this.getAssorted(id)!;
     } catch (error) { this.db.exec("ROLLBACK"); throw error; }
   }
 

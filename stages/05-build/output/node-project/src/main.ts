@@ -7,11 +7,13 @@ import { buildApp } from "./http/app.js";
 const config = loadConfig();
 const db = openDatabase(config.databasePath);
 const store = new SqliteStore(db);
+const openaiApiKey = config.openaiApiKey;
+const vision = openaiApiKey ? new OpenAIVisionExtractor(openaiApiKey, config.visionModel) : undefined;
 const app = buildApp({
   config, db, store,
-  ...(config.openaiApiKey ? {
-    vision: new OpenAIVisionExtractor(config.openaiApiKey, config.visionModel),
-    embedder: new OpenAIEmbedder(config.openaiApiKey, config.embeddingModel)
+  ...(vision ? {
+    vision, assorted: vision,
+    embedder: new OpenAIEmbedder(openaiApiKey!, config.embeddingModel)
   } : {})
 });
 

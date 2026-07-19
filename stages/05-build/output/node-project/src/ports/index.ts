@@ -1,4 +1,4 @@
-import type { Book, Box, CandidateFields, ScanCandidate } from "../domain/model.js";
+import type { AssortedCapture, AssortedFields, Book, Box, CandidateFields, ScanCandidate } from "../domain/model.js";
 
 export interface Page<T> { data: T[]; page: number; limit: number; total: number }
 export interface BoxRepository {
@@ -25,6 +25,19 @@ export interface CandidateRepository {
 }
 export interface VisionExtractor {
   extract(image: { mimeType: string; bytes: Uint8Array }): Promise<{ fields: CandidateFields; provenance: Record<string, unknown> }>;
+}
+export interface AssortedExtractor {
+  extractAssorted(image: { mimeType: string; bytes: Uint8Array }): Promise<{ fields: AssortedFields; provenance: Record<string, unknown> }>;
+}
+export interface AssortedCaptureRepository {
+  createAssorted(input: { boxId: string; mimeType: string; bytes: Uint8Array; fields: AssortedFields }): AssortedCapture;
+  getAssorted(id: string): AssortedCapture | undefined;
+  listAssorted(boxId?: string, state?: AssortedCapture["state"]): AssortedCapture[];
+  getAssortedImage(id: string): { mimeType: string; bytes: Uint8Array } | undefined;
+  enrichAssorted(id: string, fields: AssortedFields, provenance: Record<string, unknown>): AssortedCapture | undefined;
+  updateAssorted(id: string, fields: AssortedFields): AssortedCapture | undefined;
+  rejectAssorted(id: string): AssortedCapture | undefined;
+  confirmAssorted(id: string, actor: string, idempotencyKey: string): AssortedCapture;
 }
 export interface Embedder {
   embed(text: string): Promise<number[]>;
