@@ -1,0 +1,6 @@
+openapi: 3.1.0
+info:
+  title: LLL ICM Reference Node
+  version: 0.1.0
+  description: Contract-first hybrid node. Public Central-compatible reads live under /api.
+paths: {}

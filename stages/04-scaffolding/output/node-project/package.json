@@ -1,0 +1,26 @@
+{
+  "name": "lll-icm-reference-node",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=24.0.0" },
+  "scripts": {
+    "dev": "node --watch --experimental-strip-types src/main.ts",
+    "start": "node --experimental-strip-types src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "check": "npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "@sinclair/typebox": "0.34.52",
+    "fastify": "5.10.0",
+    "openai": "6.48.0",
+    "sqlite-vec": "0.1.9",
+    "yaml": "2.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "typescript": "7.0.2",
+    "vitest": "4.1.10"
+  }
+}
