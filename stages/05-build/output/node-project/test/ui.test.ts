@@ -64,6 +64,8 @@ describe("branded browser application", () => {
     const browserStyles = (await app.inject({ method: "GET", url: "/assets/styles.css" })).body;
     expect(browserStyles).toContain(".view-switch button.active");
     expect(browserStyles).toContain(".box-card-primary");
+    expect(browserStyles).toContain(".dialog-close{background:#b42318!important");
+    expect(browserStyles).toContain(".box-card-art.has-photo:before{content:none}");
     expect(browserStyles).toContain(".book-card-primary");
     expect((await app.inject({ method: "GET", url: "/assets/styles.css" })).body).toContain("background:#1d4ed8!important");
     expect(home.body).not.toContain("href=\"#assorted\"");

@@ -3,10 +3,11 @@ import type { BibliographicProvider } from "../ports/index.js";
 import { validatedIsbn } from "../application/isbn.js";
 
 type Proposal = Omit<BookMetadataProposal, "id" | "candidateId" | "selected" | "createdAt">;
-type OpenLibraryEdition = { key?: string; title?: string; isbn_10?: string[]; isbn_13?: string[]; language?: string[]; publisher?: string[]; publish_date?: string; cover_i?: number };
+type OpenLibraryEdition = { key?: string; title?: string; isbn_10?: string[]; isbn_13?: string[]; language?: string[]; publisher?: string[]; publish_date?: string | string[]; cover_i?: number };
 type OpenLibraryDoc = { key?: string; title?: string; author_name?: string[]; isbn?: string[]; edition_key?: string[]; language?: string[]; publisher?: string[]; publish_date?: string[]; first_publish_year?: number; cover_i?: number; subject?: string[]; first_sentence?: string[] | string; editions?: { docs?: OpenLibraryEdition[] } };
 
 const first = <T>(value: T[] | undefined): T | null => value?.[0] ?? null;
+const scalar = <T>(value: T | T[] | undefined): T | null => Array.isArray(value) ? value[0] ?? null : value ?? null;
 const description = (value: string[] | string | undefined) => Array.isArray(value) ? first(value) : value ?? null;
 
 export class OpenLibraryProvider implements BibliographicProvider {
@@ -37,7 +38,7 @@ export class OpenLibraryProvider implements BibliographicProvider {
       const isbn10 = first(edition?.isbn_10?.map(validatedIsbn).filter((item): item is string => Boolean(item))) ?? first(doc.isbn?.map(validatedIsbn).filter((item): item is string => item?.length === 10)) ?? null;
       const editionId = edition?.key?.replace("/books/", "") ?? first(doc.edition_key), workId = doc.key?.replace("/works/", "") ?? null;
       const coverId = edition?.cover_i ?? doc.cover_i, sourceId = editionId ? "/books/" + editionId : workId ? "/works/" + workId : "/search";
-      return { provider: "openlibrary", workId, editionId: editionId ?? null, isbn10, isbn13, title: edition?.title ?? doc.title ?? fields.title, authors: doc.author_name?.slice(0, 5) ?? [fields.author], description: description(doc.first_sentence), language: first(edition?.language) ?? first(doc.language), publisher: first(edition?.publisher) ?? first(doc.publisher), publishedDate: edition?.publish_date ?? first(doc.publish_date) ?? (doc.first_publish_year ? String(doc.first_publish_year) : null), subjects: doc.subject?.slice(0, 12) ?? [], coverUrl: coverId ? "https://covers.openlibrary.org/b/id/" + coverId + "-M.jpg?default=false" : null, sourceUrl: "https://openlibrary.org" + sourceId };
+      return { provider: "openlibrary", workId, editionId: editionId ?? null, isbn10, isbn13, title: edition?.title ?? doc.title ?? fields.title, authors: doc.author_name?.slice(0, 5) ?? [fields.author], description: description(doc.first_sentence), language: first(edition?.language) ?? first(doc.language), publisher: first(edition?.publisher) ?? first(doc.publisher), publishedDate: scalar(edition?.publish_date) ?? first(doc.publish_date) ?? (doc.first_publish_year ? String(doc.first_publish_year) : null), subjects: doc.subject?.slice(0, 12) ?? [], coverUrl: coverId ? "https://covers.openlibrary.org/b/id/" + coverId + "-M.jpg?default=false" : null, sourceUrl: "https://openlibrary.org" + sourceId };
     });
     this.cache.set(cacheKey, { expires: Date.now() + 24 * 60 * 60 * 1000, value });
     return value;

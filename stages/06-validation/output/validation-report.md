@@ -17,8 +17,8 @@ The project is not yet marked hackathon-release complete. OAuth for ChatGPT, the
 ```text
 npm run check
 TypeScript: PASS
-Test files: 7 passed
-Tests: 18 passed
+Test files: 8 passed
+Tests: 19 passed
 
 npm audit --omit=dev
 0 vulnerabilities

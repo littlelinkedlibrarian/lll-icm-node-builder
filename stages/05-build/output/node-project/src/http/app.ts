@@ -293,7 +293,8 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
     const { book, data } = await bookMetadataOptions(id);
     const selected = data.find(item => item.sourceUrl === sourceUrl);
     if (!selected) throw new DomainError("metadata_proposal_not_found", 404, "That edition is no longer available");
-    const publicationYear = selected.publishedDate?.match(/\d{4}/)?.[0];
+    const publicationDate = Array.isArray(selected.publishedDate) ? selected.publishedDate[0] : selected.publishedDate;
+    const publicationYear = publicationDate?.match(/\d{4}/)?.[0];
     const updated = input.store.update(id, {
       isbn: selected.isbn13 ?? selected.isbn10 ?? book.isbn,
       genre: book.genre ?? selected.subjects[0] ?? null,
