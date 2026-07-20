@@ -49,6 +49,7 @@ describe("branded browser application", () => {
     expect(browserScript).toContain(`closeDialogIfOpen("book-details-dialog")`);
     expect(browserScript).toContain(`const target = event.target.closest("button")`);
     expect(browserScript).toContain(`openDialog("activity-dialog")`);
+    expect(browserScript).toContain(`state.token ? loadManaged() : load()`);
     expect(browserScript).toContain(`openDialog("book-details-dialog")`);
     expect(browserScript).not.toContain(`closest("button,[data-open-box]`);
     expect((await app.inject({ method: "GET", url: "/assets/app.js" })).body).toContain("1 image selected");
