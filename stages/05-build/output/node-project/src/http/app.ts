@@ -44,6 +44,12 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
   const assorted = new AssortedCaptureService(input.store);
   const search = new SearchService(input.store, input.store, input.embedder);
   const auth = async (request: FastifyRequest, reply: FastifyReply) => {
+    if (input.config.publicDemoOperator) return;
+    if (!input.config.operatorToken || request.headers.authorization !== `Bearer ${input.config.operatorToken}`) {
+      return reply.code(401).send({ error: "unauthorized", message: "A local operator token is required" });
+    }
+  };
+  const mcpAuth = async (request: FastifyRequest, reply: FastifyReply) => {
     if (!input.config.operatorToken || request.headers.authorization !== `Bearer ${input.config.operatorToken}`) {
       return reply.code(401).send({ error: "unauthorized", message: "A local operator token is required" });
     }
@@ -73,12 +79,12 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
     const photo = demoPhotos.get((request.params as { name: string }).name);
     return photo ? reply.header("cache-control", "public, max-age=3600").type("image/jpeg").send(photo) : reply.code(404).send({ error: "not_found", message: "Demo photo not found" });
   });
-  app.get("/api/meta", async () => ({ name: input.config.nodeName, publicBaseUrl: input.config.publicBaseUrl.href, compatibilityVersion: "0.1.0" }));
+  app.get("/api/meta", async () => ({ name: input.config.nodeName, publicBaseUrl: input.config.publicBaseUrl.href, compatibilityVersion: "0.1.0", publicDemoOperator: input.config.publicDemoOperator }));
   app.options("/mcp", async (_request, reply) => reply.headers({
     "access-control-allow-origin": "*", "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
     "access-control-allow-headers": "authorization, content-type, mcp-protocol-version, mcp-session-id"
   }).code(204).send());
-  app.route({ method: ["GET", "POST", "DELETE"], url: "/mcp", preHandler: auth, handler: async (request, reply) => {
+  app.route({ method: ["GET", "POST", "DELETE"], url: "/mcp", preHandler: mcpAuth, handler: async (request, reply) => {
     reply.hijack();
     reply.raw.setHeader("Access-Control-Allow-Origin", "*");
     await handleMcpRequest(request.raw, reply.raw, request.body, {

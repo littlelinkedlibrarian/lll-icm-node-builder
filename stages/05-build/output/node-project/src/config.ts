@@ -5,6 +5,7 @@ export interface AppConfig {
   nodeName: string;
   publicBaseUrl: URL;
   operatorToken?: string;
+  publicDemoOperator?: boolean;
   openaiApiKey?: string;
   visionModel: string;
   embeddingModel: string;
@@ -38,6 +39,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     nodeName: env.NODE_NAME ?? "My Little Box",
     publicBaseUrl: new URL(env.PUBLIC_BASE_URL ?? `http://localhost:${port}`),
     ...(env.OPERATOR_TOKEN ? { operatorToken: env.OPERATOR_TOKEN } : {}),
+    publicDemoOperator: env.PUBLIC_DEMO_OPERATOR === "true",
     ...(env.OPENAI_API_KEY ? { openaiApiKey: env.OPENAI_API_KEY } : {}),
     visionModel: env.OPENAI_VISION_MODEL ?? "gpt-5.6-sol",
     embeddingModel: env.OPENAI_EMBEDDING_MODEL ?? "text-embedding-3-small",
