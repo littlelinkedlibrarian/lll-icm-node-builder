@@ -8,7 +8,7 @@ Deployed target: `https://happybox.littlelinkedlibrarian.com`
 
 ## Release-candidate result
 
-The node builds, passes its automated suite, runs with persistent SQLite and sqlite-vec storage, serves the real Happy Box sample inputs, and exposes the same application behavior through its browser and authenticated Streamable HTTP MCP boundaries. The previous MCP schema failure is fixed and covered by a real transport test.
+The node builds, passes its automated suite, runs with persistent SQLite and sqlite-vec storage, and serves the real Happy Box sample inputs. Its explicitly configured hackathon mode opens browser CRUD, scanning, review, and activity history without exposing the real operator token; Streamable HTTP MCP remains authenticated. The previous MCP schema failure is fixed and covered by a real transport test.
 
 The project is not yet marked hackathon-release complete. OAuth for ChatGPT and the browser/video walkthrough require explicit human work described below. The live Central registry, heartbeat, proximity, aggregation, detail, and inventory reads now pass; the human CRUD-refresh loop remains in the walkthrough.
 
@@ -18,7 +18,7 @@ The project is not yet marked hackathon-release complete. OAuth for ChatGPT and 
 npm run check
 TypeScript: PASS
 Test files: 9 passed
-Tests: 22 passed
+Tests: 23 passed
 
 npm audit --omit=dev
 0 vulnerabilities
@@ -50,6 +50,8 @@ Tests use temporary migrated SQLite databases, deterministic OpenAI fakes, the r
 - `lll-happy-box` is active, public, healthy, and has a fresh authenticated heartbeat. Its single-purpose key is stored only in the host `0600` runtime environment.
 - Live Central discovery returned one eligible node. Aggregate list, 5 km proximity, box detail, and box-inventory reads returned Happy Box with `nodesQueried: 1`, the correct source label, branded `uiUrl`, and three current books.
 - A paired node backup was verified at `/app/backups/lll-node-20260720T174005Z.sqlite` before the heartbeat-enabled rebuild.
+- Public hackathon mode was deployed with `PUBLIC_DEMO_OPERATOR=true`; anonymous browser-management reads return HTTP 200 while anonymous `/mcp` remains HTTP 401.
+- The immediate pre-demo rollback backup is `/app/backups/lll-node-20260720T184001Z.sqlite`, with a paired media archive from the same timestamp.
 
 ## Demo-data disposition
 
@@ -66,11 +68,11 @@ Tests use temporary migrated SQLite databases, deterministic OpenAI fakes, the r
 |---|---|---|
 | Setup, boxes, books, privacy | PASS automated | Locked install, validation, authenticated CRUD, public filtering, pagination, and relationship rules |
 | Book scan and confirmation | PASS automated | Bounded multi-book extraction, one batch review, edition proposals, idempotent human confirmation, and retry behavior |
-| Scan activity and media | PASS automated | Durable parent image, protected zoomable history, child outcomes, and backup/restore coverage |
+| Scan activity and media | PASS automated and live | Durable parent image, zoomable history, child outcomes, and backup/restore coverage; public only while explicit hackathon mode is enabled |
 | Assorted Things | PASS automated | Human-only box-scoped capture and review; no OpenAI inference and no Central projection |
 | Metadata and covers | PASS automated | Every detected candidate receives a bounded concurrency-limited lookup; transient retry, explicit candidate retry, existing-book recovery, human edition selection, reindexing, provenance, and graceful no-match behavior |
 | Vector semantic search | PASS application plumbing; MULTILINGUAL human check pending | Spanish, Simplified Chinese, Italian, and French query paths are tested against sqlite-vec with a deterministic embedder; live OpenAI cross-language relevance still needs walkthrough evidence |
-| Browser UI | PASS automated; HUMAN pending | Responsive application, box/book detail modals, themes, map/card controls, scanner input state, operator logout, and delete regressions |
+| Browser UI | PASS automated and deployed; HUMAN pending | Responsive application, box/book detail modals, themes, map/card controls, scanner input state, public-demo labeling, and delete regressions |
 | MCP application boundary | PASS automated and live smoke | 10 authenticated tools, widget resource, strict declared schemas, and canonical application services |
 | OAuth for ChatGPT | PENDING | Static bearer authentication works for local/operator testing; OAuth 2.1 discovery, authorization-code/PKCE flow, JWT validation, scopes, and ChatGPT connection are not configured |
 | Central compatibility | PASS automated and live reads; HUMAN CRUD-refresh pending | Registry promotion, fresh heartbeat, health/privacy/proximity eligibility, aggregate lists, box detail, inventory, source label, and branded link passed live; the browser card/modal and one visible create/delete refresh remain in the human walkthrough |
@@ -78,12 +80,12 @@ Tests use temporary migrated SQLite databases, deterministic OpenAI fakes, the r
 
 ## Required human release review
 
-1. Hard-refresh the public application and follow `deploy/HUMAN-TEST.md`.
+1. Hard-refresh the public application, confirm **Public demo mode** appears without a token, and follow `deploy/HUMAN-TEST.md`.
 2. Confirm public use of the real outdoor and shelf photographs.
 3. Decide whether to preserve the current live records, manually remove known obsolete demo fixtures after backup, or launch a separate clean hackathon data volume.
 4. Run one real GPT-5.6 multi-spine scan, correct candidates, confirm multiple books, and verify metadata, covers, activity history, and semantic search.
 5. Test mobile camera capture and the complete Assorted Things human-review path.
-6. Test the MCP endpoint with MCP Inspector using the operator token.
+6. Test the still-protected MCP endpoint with MCP Inspector using the operator token.
 7. Choose and configure an OAuth 2.1 provider before connecting the MCP app to ChatGPT.
 8. Run the **Central companion loop** in `deploy/HUMAN-TEST.md` and decide whether to include it in the recorded submission demo or label it as the compatible companion.
 
