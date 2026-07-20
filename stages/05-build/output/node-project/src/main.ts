@@ -1,4 +1,5 @@
 import { LocalMediaStore } from "./adapters/media.js";
+import { CentralHeartbeatClient } from "./adapters/central.js";
 import { OpenLibraryProvider } from "./adapters/openlibrary.js";
 import { OpenAIEmbedder, OpenAIVisionExtractor } from "./adapters/openai.js";
 import { loadConfig } from "./config.js";
@@ -23,6 +24,25 @@ const app = buildApp({
 });
 
 await app.listen({ host: config.host, port: config.port });
-const stop = async () => { await app.close(); db.close(); };
+let heartbeatTimer: NodeJS.Timeout | undefined;
+if (config.central) {
+  const heartbeat = new CentralHeartbeatClient(config.central);
+  const sendHeartbeat = async () => {
+    try {
+      await heartbeat.heartbeat();
+      app.log.info({ nodeId: config.central?.nodeId }, "Central heartbeat accepted");
+    } catch (error) {
+      app.log.warn({ err: error, nodeId: config.central?.nodeId }, "Central heartbeat failed; local operation continues");
+    }
+  };
+  await sendHeartbeat();
+  heartbeatTimer = setInterval(sendHeartbeat, config.central.heartbeatIntervalMs);
+  heartbeatTimer.unref();
+}
+const stop = async () => {
+  if (heartbeatTimer) clearInterval(heartbeatTimer);
+  await app.close();
+  db.close();
+};
 process.on("SIGINT", stop);
 process.on("SIGTERM", stop);

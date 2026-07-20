@@ -2,7 +2,7 @@
 
 Status: AUTOMATED PASS; HUMAN RELEASE REVIEW REQUIRED
 Date: 2026-07-20
-Target commit: `d630a9c` on `main`
+Target revision: heartbeat-enabled Phase 1.5F release candidate
 Local target: `stages/05-build/output/node-project`
 Deployed target: `https://happybox.littlelinkedlibrarian.com`
 
@@ -10,15 +10,15 @@ Deployed target: `https://happybox.littlelinkedlibrarian.com`
 
 The node builds, passes its automated suite, runs with persistent SQLite and sqlite-vec storage, serves the real Happy Box sample inputs, and exposes the same application behavior through its browser and authenticated Streamable HTTP MCP boundaries. The previous MCP schema failure is fixed and covered by a real transport test.
 
-The project is not yet marked hackathon-release complete. OAuth for ChatGPT, the Central discovery/aggregation loop, and the browser/video walkthrough require explicit human work described below.
+The project is not yet marked hackathon-release complete. OAuth for ChatGPT, the live Central discovery/aggregation loop, and the browser/video walkthrough require explicit human work described below.
 
 ## Reproducible automated evidence
 
 ```text
 npm run check
 TypeScript: PASS
-Test files: 8 passed
-Tests: 19 passed
+Test files: 9 passed
+Tests: 22 passed
 
 npm audit --omit=dev
 0 vulnerabilities
@@ -68,7 +68,7 @@ Tests use temporary migrated SQLite databases, deterministic OpenAI fakes, the r
 | Browser UI | PASS automated; HUMAN pending | Responsive application, box/book detail modals, themes, map/card controls, scanner input state, operator logout, and delete regressions |
 | MCP application boundary | PASS automated and live smoke | 10 authenticated tools, widget resource, strict declared schemas, and canonical application services |
 | OAuth for ChatGPT | PENDING | Static bearer authentication works for local/operator testing; OAuth 2.1 discovery, authorization-code/PKCE flow, JWT validation, scopes, and ChatGPT connection are not configured |
-| Central compatibility | PASS at node contract; LIVE LOOP pending | OpenAPI compatibility exists, but registry heartbeat, active-node discovery, proximity/vector aggregation, and the Central-to-node-to-Central demo are not yet evidenced |
+| Central compatibility | PASS at node contract and heartbeat adapter; LIVE LOOP pending | OpenAPI compatibility and the optional single-purpose heartbeat client are tested; registry promotion, active-node discovery, aggregation, and the Central-to-node-to-Central browser demo still need live evidence |
 | Broad audit trail | PARTIAL | Scan decisions are recorded; complete create/update/delete actor audit coverage remains hardening work |
 
 ## Required human release review

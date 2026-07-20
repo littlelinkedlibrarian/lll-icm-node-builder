@@ -27,6 +27,18 @@ Open the public URL, choose **Operator access**, paste the token, and connect.
 11. Search for the same English catalog concept using Spanish, Simplified Chinese, Italian, and French phrases. Record the result order and mode; this is the live multilingual quality evidence.
 12. Open **Operator menu**, log out on this device, and confirm public boxes, books, search, maps, book details, and confirmed Assorted Things still work while scanning, private history, and CRUD require operator access. Log back in, reload, and confirm all completed writes and Activity History persist.
 
+## Central companion loop
+
+After the Central operator has approved `lll-happy-box` and the node log shows `Central heartbeat accepted`:
+
+1. Open <https://beta.littlelinkedlibrarian.com> and navigate to the boxes/catalog surface.
+2. Confirm **Happy Box** appears as a network result labeled with the Happy Box node source.
+3. Open the network box modal, inspect its current books, then follow the node link to the branded Happy Box application.
+4. As the local operator, create or scan and confirm a disposable book in Happy Box. Do not use a Central user token for this write.
+5. Return to Central and refresh the same network box. Confirm the book appears without a replication or sync step.
+6. Delete the disposable book in Happy Box, refresh Central again, and confirm it disappears.
+7. Confirm Assorted Things, scan originals, activity history, operator controls, and local credentials never appear in Central responses.
+
 ## Boundaries worth checking
 
 - Opening `/api/manage/activities` or `/api/manage/assorted` without operator access returns `401`.
