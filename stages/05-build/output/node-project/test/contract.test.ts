@@ -24,7 +24,7 @@ describe("OpenAPI compatibility contract", () => {
   });
 
   it("documents protected Phase 1.5E activity and metadata routes", () => {
-    for (const path of ["/api/manage/activities", "/api/manage/activities/{id}", "/api/manage/activities/{id}/image", "/api/manage/candidates/{id}/metadata-selection"]) {
+    for (const path of ["/api/manage/activities", "/api/manage/activities/{id}", "/api/manage/activities/{id}/image", "/api/manage/candidates/{id}/metadata-selection", "/api/manage/candidates/{id}/metadata-refresh", "/api/manage/books/{id}/metadata-options", "/api/manage/books/{id}/metadata-apply"]) {
       const operation = contract.paths[path]?.get ?? contract.paths[path]?.post;
       expect(operation).toBeDefined();
       expect((operation as { security?: unknown }).security).toBeDefined();

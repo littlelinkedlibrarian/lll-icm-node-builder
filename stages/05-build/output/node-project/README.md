@@ -22,7 +22,7 @@ The node owns its boxes, books, scan candidates, audit trail, and vectors. Centr
 - `text-embedding-3-small` embeddings stored and searched locally with exact-pinned `sqlite-vec`.
 - Deterministic keyword fallback when OpenAI or vector search is unavailable.
 - Book scans retain their parent image before AI runs. Protected Activity History groups every candidate and outcome under that zoomable image.
-- Valid visible ISBNs are checked; otherwise a bounded Open Library lookup offers edition choices. Nothing is selected automatically. Confirmed selections persist ISBN, description, language, publication year, cover URL, and source provenance; unmatched books can still be confirmed.
+- Valid visible ISBNs are checked; otherwise bounded, concurrency-limited Open Library lookups offer edition choices for every detected book. Nothing is selected automatically. Failed lookups have an explicit retry, and an already-confirmed book can use **Find metadata & cover** to choose and apply an edition later. Confirmed selections persist ISBN, description, language, publication year, cover URL, and source provenance; unmatched books can still be confirmed.
 - Catalog cards use the selected cover thumbnail when available and fall back to a colored spine. Provider cover bytes are not mirrored locally yet.
 - SQLite migrations, integrity checking, safe backup boundary, and recovery tests.
 
@@ -76,7 +76,7 @@ Protected book-scan history uses `GET /api/manage/activities`, `GET /api/manage/
 
 Assorted Things management routes live under `/api/manage/assorted`. Pending and rejected captures remain private. Confirmed items gain own-domain reads at `GET /api/boxes/{id}/assorted` and `GET /api/assorted/{id}/image`; these extensions remain deliberately outside the Central-compatible surface.
 
-Search is `GET /api/search?q=ocean&boxId=<optional-uuid>`. Its response reports `semantic`, `keyword`, or `keyword_fallback`. Semantic mode embeds confirmed title, author, genre, description, and language metadata plus the query in the same OpenAI vector space, so a query may be written in another language. The node does not translate or duplicate catalog metadata; keyword fallback remains same-text matching.
+Search is `GET /api/search?q=ocean&boxId=<optional-uuid>`. Its response reports `semantic`, `keyword`, or `keyword_fallback`. Semantic mode embeds confirmed title, author, genre, description, and language metadata plus the query in the same OpenAI vector space, so a query may be written in another language. The application test matrix includes Spanish, Simplified Chinese, Italian, and French queries; model-quality relevance still requires a live evaluation. The node does not translate or duplicate catalog metadata; keyword fallback remains same-text matching.
 
 The complete contract is [contracts/openapi.yaml](contracts/openapi.yaml).
 
@@ -113,7 +113,7 @@ Current Central derives the UI origin from the registered endpoint, so splitting
 
 ## OpenAI ownership
 
-The OpenAI adapter is limited to the book scanner. Book and shelf bytes are saved before model extraction and produce a bounded array of editable bibliographic candidates with shared batch provenance. Open Library receives only visible ISBN or extracted title, author, and optional language—not the uploaded image. Enrichment is sequential, bounded to five complete candidates, cached for 24 hours in process, and never blocks review. Assorted Things never calls OpenAI: it stores a local photo for human description and confirmation. The adapter never writes repositories directly; application services validate book proposals and a local operator controls every canonical transition.
+The OpenAI adapter is limited to the book scanner. Book and shelf bytes are saved before model extraction and produce a bounded array of editable bibliographic candidates with shared batch provenance. Open Library receives only visible ISBN or extracted title, author, and optional language—not the uploaded image. Enrichment covers every complete candidate with at most three concurrent lookups, one transient retry, a 24-hour process cache, and an explicit per-book retry; it never blocks human review. Assorted Things never calls OpenAI: it stores a local photo for human description and confirmation. The adapter never writes repositories directly; application services validate book proposals and a local operator controls every canonical transition.
 
 Embeddings are derived from the versioned `book-search-v1` text representation. A canonical book may exist without a vector, and a model outage never rolls back inventory.
 

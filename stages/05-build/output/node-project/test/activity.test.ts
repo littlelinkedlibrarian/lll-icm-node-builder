@@ -18,6 +18,15 @@ class ShelfVision implements VisionExtractor {
 class Editions implements BibliographicProvider {
   async findEditions(fields: Parameters<BibliographicProvider["findEditions"]>[0]) { return [{ provider: "openlibrary", workId: "OL1W", editionId: "OL1M", isbn10: null, isbn13: "9780306406157", title: fields.title, authors: [fields.author], description: "An enriched description.", language: "eng", publisher: "Example Press", publishedDate: "2024", subjects: ["Nature"], coverUrl: "https://covers.openlibrary.org/b/id/1-M.jpg?default=false", sourceUrl: "https://openlibrary.org/books/OL1M" }]; }
 }
+class FullShelfVision implements VisionExtractor {
+  async extract() {
+    return { candidates: Array.from({ length: 7 }, (_, index) => ({ title: "Shelf Book " + index, author: "Reader " + index, isbn: null, genre: null, description: null, language: "en", condition: null })), provenance: { provider: "openai", model: "fake" } };
+  }
+}
+class CountingEditions extends Editions {
+  calls = 0;
+  override async findEditions(fields: Parameters<BibliographicProvider["findEditions"]>[0]) { this.calls += 1; return super.findEditions(fields); }
+}
 
 describe("scan activity and edition metadata", () => {
   let db: DatabaseSync;
@@ -58,6 +67,33 @@ describe("scan activity and edition metadata", () => {
     const activities = (await app.inject({ method: "GET", url: "/api/manage/activities", headers: auth })).json().data;
     expect(activities).toHaveLength(1); expect(activities[0]).toMatchObject({ state: "failed", errorCode: "openai_unavailable", candidates: [] });
     expect((await app.inject({ method: "GET", url: `/api/manage/activities/${activities[0].id}/image`, headers: auth })).statusCode).toBe(200);
+    await app.close();
+  });
+
+  it("looks up metadata for every book in a full shelf rather than only the first five", async () => {
+    const store = new SqliteStore(db), bibliography = new CountingEditions();
+    const box = store.create({ name: "Full Shelf", description: null, location: null, latitude: null, longitude: null, visibility: "public" });
+    const app = buildApp({ config, db, store, media: new MemoryMediaStore(), vision: new FullShelfVision(), bibliography });
+    const scan = await app.inject({ method: "POST", url: "/api/manage/candidates/analyze", headers: auth, payload: { boxId: box.id, mimeType: "image/jpeg", imageBase64: Buffer.from("full-shelf").toString("base64") } });
+    expect(scan.statusCode).toBe(201);
+    expect(scan.json().candidates).toHaveLength(7);
+    expect(scan.json().candidates.every((candidate: { metadataProposals: unknown[] }) => candidate.metadataProposals.length === 1)).toBe(true);
+    expect(bibliography.calls).toBe(7);
+    await app.close();
+  });
+
+  it("requires an explicit edition choice when recovering metadata for an existing book", async () => {
+    const store = new SqliteStore(db);
+    const box = store.create({ name: "Recovery Shelf", description: null, location: null, latitude: null, longitude: null, visibility: "public" });
+    const book = store.create({ boxId: box.id, title: "Ocean Atlas", author: "Ada Reader", isbn: null, genre: null, description: null, language: null, condition: "good", visibility: "public", aiProvenance: { provider: "openai" } });
+    const app = buildApp({ config, db, store, bibliography: new Editions() });
+    expect((await app.inject({ method: "GET", url: `/api/manage/books/${book.id}/metadata-options` })).statusCode).toBe(401);
+    const options = await app.inject({ method: "GET", url: `/api/manage/books/${book.id}/metadata-options`, headers: auth });
+    const proposal = options.json().data[0];
+    expect(proposal.coverUrl).toContain("covers.openlibrary.org");
+    expect((await app.inject({ method: "POST", url: `/api/manage/books/${book.id}/metadata-apply`, headers: auth, payload: {} })).statusCode).toBe(400);
+    const applied = await app.inject({ method: "POST", url: `/api/manage/books/${book.id}/metadata-apply`, headers: auth, payload: { sourceUrl: proposal.sourceUrl } });
+    expect(applied.json()).toMatchObject({ isbn: "9780306406157", coverUrl: proposal.coverUrl, description: "An enriched description.", publicationYear: 2024, metadataProvenance: { provider: "openlibrary", selectedBy: "browser-operator" } });
     await app.close();
   });
 

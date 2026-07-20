@@ -226,6 +226,9 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
     try { return { selected: input.store.selectMetadataProposal(id, proposalId), candidate: input.store.getCandidate(id) }; }
     catch { return reply.code(404).send({ error: "metadata_proposal_not_found", message: "Metadata proposal does not belong to this candidate" }); }
   });
+  app.post("/api/manage/candidates/:id/metadata-refresh", { preHandler: auth }, async (request) => {
+    return candidates.refreshMetadata((request.params as Id).id);
+  });
 
   app.post("/api/manage/candidates/analyze", { preHandler: auth, bodyLimit: 14 * 1024 * 1024 }, async (request, reply) => {
     const body = request.body as { boxId: string; mimeType: string; imageBase64: string };
@@ -264,6 +267,44 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
     }
     try { await search.index(result.book); } catch { /* retry in a later job adapter */ }
     return result;
+  });
+
+  const bookMetadataOptions = async (id: string) => {
+    const book = input.store.getBook(id);
+    if (!book) throw new DomainError("book_not_found", 404, "Book not found");
+    if (!input.bibliography) throw new DomainError("bibliographic_unavailable", 503, "Book metadata lookup is not configured");
+    try {
+      return { book, data: await input.bibliography.findEditions({
+        title: book.title, author: book.author, isbn: book.isbn, genre: book.genre,
+        description: book.description, language: book.language, condition: book.condition
+      }) };
+    } catch {
+      throw new DomainError("bibliographic_unavailable", 503, "Book metadata lookup is temporarily unavailable");
+    }
+  };
+  app.get("/api/manage/books/:id/metadata-options", { preHandler: auth }, async (request) => {
+    const result = await bookMetadataOptions((request.params as Id).id);
+    return { data: result.data };
+  });
+  app.post("/api/manage/books/:id/metadata-apply", { preHandler: auth }, async (request) => {
+    const id = (request.params as Id).id;
+    const sourceUrl = (request.body as { sourceUrl?: string }).sourceUrl;
+    if (!sourceUrl) throw new DomainError("validation_error", 400, "Choose an edition");
+    const { book, data } = await bookMetadataOptions(id);
+    const selected = data.find(item => item.sourceUrl === sourceUrl);
+    if (!selected) throw new DomainError("metadata_proposal_not_found", 404, "That edition is no longer available");
+    const publicationYear = selected.publishedDate?.match(/\d{4}/)?.[0];
+    const updated = input.store.update(id, {
+      isbn: selected.isbn13 ?? selected.isbn10 ?? book.isbn,
+      genre: book.genre ?? selected.subjects[0] ?? null,
+      description: book.description ?? selected.description ?? null,
+      language: book.language ?? selected.language ?? null,
+      coverUrl: selected.coverUrl,
+      publicationYear: publicationYear ? Number(publicationYear) : null,
+      metadataProvenance: { provider: selected.provider, editionId: selected.editionId, sourceUrl: selected.sourceUrl, selectedAt: new Date().toISOString(), selectedBy: "browser-operator" }
+    }) as Book;
+    try { await search.index(updated); } catch { /* keyword fallback remains available */ }
+    return updated;
   });
   app.post("/api/manage/assorted/capture", { preHandler: auth, bodyLimit: 14 * 1024 * 1024 }, async (request, reply) => {
     const body = request.body as { boxId: string; mimeType: string; imageBase64: string; title?: string; note?: string };

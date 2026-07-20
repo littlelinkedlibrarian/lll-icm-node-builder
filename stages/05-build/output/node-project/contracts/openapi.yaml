@@ -183,13 +183,29 @@ paths:
       security: [{ operatorToken: [] }]
       responses:
         "204": { description: Book and vector linkage deleted. }
+  /api/manage/books/{id}/metadata-options:
+    get:
+      operationId: findBookMetadataOptions
+      description: Looks up bounded bibliographic matches for operator review without changing the book.
+      security: [{ operatorToken: [] }]
+      responses:
+        "200": { description: Candidate editions and available covers returned. }
+        "503": { description: Bibliographic lookup is unavailable. }
+  /api/manage/books/{id}/metadata-apply:
+    post:
+      operationId: applyBookMetadata
+      description: Applies one explicitly selected bibliographic edition and reindexes the updated book.
+      security: [{ operatorToken: [] }]
+      responses:
+        "200": { description: Selected metadata and available cover applied. }
+        "404": { description: Book or selected edition not found. }
   /api/manage/demo/seed:
     post:
       operationId: seedDemoLibrary
       security: [{ operatorToken: [] }]
       responses:
         "200":
-          description: Idempotently creates the local judge-demo boxes and books.
+          description: Idempotently creates or refreshes the real Happy Box without manufacturing book records.
   /api/manage/activities:
     get:
       operationId: listScanActivities
@@ -221,6 +237,14 @@ paths:
       responses:
         "200": { description: Selection recorded; no book created. }
         "404": { description: Candidate or proposal not found. }
+  /api/manage/candidates/{id}/metadata-refresh:
+    post:
+      operationId: refreshCandidateEditionMetadata
+      description: Retries bounded bibliographic lookup for one pending candidate without selecting an edition.
+      security: [{ operatorToken: [] }]
+      responses:
+        "200": { description: Candidate returned with refreshed metadata proposals. }
+        "503": { description: Bibliographic lookup is temporarily unavailable. }
   /api/manage/candidates/analyze:
     post:
       operationId: analyzeBookOrShelfImage

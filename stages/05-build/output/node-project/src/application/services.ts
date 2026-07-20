@@ -46,6 +46,22 @@ export function candidateFields(value: unknown, requireIdentity = false): Candid
 
 export class CandidateService {
   constructor(private readonly store: SqliteStore, private readonly vision: VisionExtractor | undefined, private readonly media: MediaStore, private readonly bibliography?: BibliographicProvider) {}
+  async refreshMetadata(candidateId: string) {
+    const candidate = this.store.getCandidate(candidateId);
+    if (!candidate) throw new DomainError("candidate_not_found", 404, "Candidate not found");
+    if (candidate.state !== "pending") throw new DomainError("invalid_candidate_state", 409, "Only pending candidates can refresh metadata");
+    if (!this.bibliography) throw new DomainError("bibliographic_unavailable", 503, "Book metadata lookup is not configured");
+    if (!candidate.fields.title.trim() || !candidate.fields.author.trim()) throw new DomainError("validation_error", 400, "Review the title and author before looking up editions");
+    try {
+      const proposals = await this.bibliography.findEditions(candidate.fields);
+      this.store.addMetadataProposals(candidate.id, proposals);
+      if (candidate.activityId) this.store.addActivityEvent(candidate.activityId, "metadata.proposed", candidate.id, null, { count: proposals.length, provider: "openlibrary" });
+      return this.store.getCandidate(candidate.id)!;
+    } catch {
+      if (candidate.activityId) this.store.addActivityEvent(candidate.activityId, "metadata.unavailable", candidate.id, null, { provider: "openlibrary" });
+      throw new DomainError("bibliographic_unavailable", 503, "Book metadata lookup is temporarily unavailable; retry before confirming");
+    }
+  }
   async analyze(boxId: string, mimeType: string, bytes: Uint8Array) {
     if (!this.store.getBox(boxId)) throw new DomainError("box_not_found", 404, "Destination box does not exist");
     if (!["image/jpeg", "image/png", "image/webp"].includes(mimeType)) throw new DomainError("unsupported_image", 400, "Use JPEG, PNG, or WebP");
@@ -60,14 +76,15 @@ export class CandidateService {
       if (!Array.isArray(extracted.candidates) || !extracted.candidates.length || extracted.candidates.length > 15) throw new DomainError("invalid_model_output", 502, "Model output must contain 1 through 15 book candidates");
       const reviewedFields = extracted.candidates.map(value => { const fields = candidateFields(value); return { ...fields, isbn: validatedIsbn(fields.isbn) }; });
       const created = reviewedFields.map((fields, position) => this.store.createCandidate(boxId, fields, { ...extracted.provenance, batchId: activity.id, position, candidateCount: reviewedFields.length }, activity.id));
-      for (const candidate of created.slice(0, 5)) {
-        if (!this.bibliography || !candidate.fields.title.trim() || !candidate.fields.author.trim()) continue;
-        try {
-          const proposals = await this.bibliography.findEditions(candidate.fields);
-          this.store.addMetadataProposals(candidate.id, proposals);
-          this.store.addActivityEvent(activity.id, "metadata.proposed", candidate.id, null, { count: proposals.length, provider: "openlibrary" });
-        } catch { this.store.addActivityEvent(activity.id, "metadata.unavailable", candidate.id, null, { provider: "openlibrary" }); }
-      }
+      const queue = [...created];
+      const worker = async () => {
+        while (queue.length) {
+          const candidate = queue.shift();
+          if (!candidate || !candidate.fields.title.trim() || !candidate.fields.author.trim()) continue;
+          try { await this.refreshMetadata(candidate.id); } catch { /* candidates remain reviewable and expose an explicit retry */ }
+        }
+      };
+      await Promise.all(Array.from({ length: Math.min(3, queue.length) }, worker));
       this.store.updateActivity(activity.id, "pending_review", { provenance: extracted.provenance });
       this.store.addActivityEvent(activity.id, "extraction.succeeded", null, null, { candidateCount: created.length });
       return { ...this.store.getActivity(activity.id)!, imageUrl: "/api/manage/activities/" + activity.id + "/image", candidates: this.store.listActivityCandidates(activity.id) };

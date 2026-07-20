@@ -18,7 +18,7 @@ The project is not yet marked hackathon-release complete. OAuth for ChatGPT, the
 npm run check
 TypeScript: PASS
 Test files: 7 passed
-Tests: 16 passed
+Tests: 18 passed
 
 npm audit --omit=dev
 0 vulnerabilities
@@ -63,8 +63,8 @@ Tests use temporary migrated SQLite databases, deterministic OpenAI fakes, the r
 | Book scan and confirmation | PASS automated | Bounded multi-book extraction, one batch review, edition proposals, idempotent human confirmation, and retry behavior |
 | Scan activity and media | PASS automated | Durable parent image, protected zoomable history, child outcomes, and backup/restore coverage |
 | Assorted Things | PASS automated | Human-only box-scoped capture and review; no OpenAI inference and no Central projection |
-| Metadata and covers | PASS automated | ISBN normalization, explicit edition selection, Open Library adapter, provenance, and graceful no-match behavior |
-| Vector semantic search | PASS automated; MULTILINGUAL human check pending | OpenAI embedding adapter, real sqlite-vec query/filter tests, and keyword fallback; cross-language relevance still needs walkthrough evidence |
+| Metadata and covers | PASS automated | Every detected candidate receives a bounded concurrency-limited lookup; transient retry, explicit candidate retry, existing-book recovery, human edition selection, reindexing, provenance, and graceful no-match behavior |
+| Vector semantic search | PASS application plumbing; MULTILINGUAL human check pending | Spanish, Simplified Chinese, Italian, and French query paths are tested against sqlite-vec with a deterministic embedder; live OpenAI cross-language relevance still needs walkthrough evidence |
 | Browser UI | PASS automated; HUMAN pending | Responsive application, box/book detail modals, themes, map/card controls, scanner input state, operator logout, and delete regressions |
 | MCP application boundary | PASS automated and live smoke | 10 authenticated tools, widget resource, strict declared schemas, and canonical application services |
 | OAuth for ChatGPT | PENDING | Static bearer authentication works for local/operator testing; OAuth 2.1 discovery, authorization-code/PKCE flow, JWT validation, scopes, and ChatGPT connection are not configured |

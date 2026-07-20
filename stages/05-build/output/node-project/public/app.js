@@ -247,6 +247,9 @@ function openBookDetails(id, returnBoxId = null) {
   const metadata = document.getElementById("book-details-metadata"); metadata.replaceChildren();
   [["ISBN", book.isbn], ["Genre", book.genre], ["Language", book.language], ["Publication year", book.publicationYear], ["Condition", book.condition], ["Cataloged", book.aiExtracted || book.aiProvenance ? "AI-assisted, human confirmed" : "Manual entry"], ["Added", book.createdAt ? new Date(book.createdAt).toLocaleDateString() : null]].filter(([, value]) => value !== null && value !== undefined && value !== "").forEach(([label, value]) => { const term = document.createElement("dt"); term.textContent = String(label); const detail = document.createElement("dd"); detail.textContent = String(value).replaceAll("_", " "); metadata.append(term, detail); });
   const source = document.getElementById("book-details-source"), sourceUrl = book.metadataProvenance?.sourceUrl; source.classList.toggle("hidden", !sourceUrl); if (sourceUrl) source.href = sourceUrl;
+  document.getElementById("book-metadata-recovery").classList.add("hidden");
+  document.getElementById("book-metadata-options").replaceChildren();
+  document.getElementById("book-metadata-status").textContent = "";
   const actions = document.getElementById("book-detail-actions"); actions.classList.toggle("hidden", !state.token); document.getElementById("edit-detail-book").dataset.editBook = id; document.getElementById("delete-detail-book").dataset.deleteBook = id;
   openDialog("book-details-dialog");
 }
@@ -315,6 +318,31 @@ async function deleteBook(id) {
   } catch (error) { toast(error.message); }
 }
 
+document.getElementById("find-book-metadata").addEventListener("click", async () => {
+  const recovery = document.getElementById("book-metadata-recovery"), select = document.getElementById("book-metadata-options"), status = document.getElementById("book-metadata-status");
+  recovery.classList.remove("hidden"); select.replaceChildren(); status.textContent = "Looking for matching editions and covers…";
+  try {
+    const result = await api("/api/manage/books/" + state.activeBookId + "/metadata-options");
+    result.data.forEach(item => {
+      const option = document.createElement("option"); option.value = item.sourceUrl;
+      option.textContent = [item.title, item.authors?.join(", "), item.publisher, item.publishedDate, item.isbn13 || item.isbn10].filter(Boolean).join(" · ");
+      select.append(option);
+    });
+    status.textContent = result.data.length ? "Review the edition carefully; nothing changes until you apply it." : "No matching editions were found. Check the title and author, then try again.";
+    document.getElementById("apply-book-metadata").disabled = !result.data.length;
+  } catch (error) { status.textContent = error.message; document.getElementById("apply-book-metadata").disabled = true; }
+});
+
+document.getElementById("apply-book-metadata").addEventListener("click", async () => {
+  const select = document.getElementById("book-metadata-options"), status = document.getElementById("book-metadata-status");
+  if (!select.value) { status.textContent = "Choose an edition first."; return; }
+  status.textContent = "Applying the selected edition…";
+  try {
+    await api("/api/manage/books/" + state.activeBookId + "/metadata-apply", { method: "POST", body: { sourceUrl: select.value } });
+    const id = state.activeBookId, returnBox = state.bookReturnBoxId; await loadManaged(); openBookDetails(id, returnBox); toast("Metadata and available cover applied");
+  } catch (error) { status.textContent = error.message; }
+});
+
 document.addEventListener("click", async event => {
   const target = event.target.closest("button"); if (!target) return;
   if (target.dataset.openBox) { await openBoxInventory(target.dataset.openBox); return; }
@@ -349,11 +377,18 @@ document.querySelector("#assorted-form").addEventListener("submit", async event 
   event.preventDefault(); return requireOperator(async () => {
     const file = document.querySelector("#assorted-camera").files[0] || document.querySelector("#assorted-image").files[0]; const status = document.querySelector("#assorted-status"); if (!document.querySelector("#scan-box").value) { status.textContent = "Choose a destination box first."; return; } if (!file) return;
     status.textContent = "Saving the photo for human review…";
+    let capture = null;
     try {
       const imageBase64 = await fileBase64(file);
-      const capture = await api("/api/manage/assorted/capture", { method: "POST", body: { boxId: document.querySelector("#scan-box").value, mimeType: file.type, imageBase64, title: document.querySelector("#assorted-title").value, note: document.querySelector("#assorted-note").value } });
+      capture = await api("/api/manage/assorted/capture", { method: "POST", body: { boxId: document.querySelector("#scan-box").value, mimeType: file.type, imageBase64, title: document.querySelector("#assorted-title").value, note: document.querySelector("#assorted-note").value } });
       status.textContent = "Saved — opening human review…"; event.currentTarget.reset(); clearFileSelection("assorted"); await loadManaged(); status.textContent = ""; await openAssortedReview(capture.id); toast("Photo saved — describe the item, then publish or reject it");
-    } catch (error) { status.textContent = error.message; }
+    } catch (error) {
+      if (capture) {
+        status.textContent = "Photo saved. Its review panel could not open, so select the box and reopen it from Assorted Things.";
+        await loadManaged().catch(() => {});
+        toast("Photo saved safely — reopen it from the box");
+      } else status.textContent = error.message;
+    }
   });
 });
 
@@ -394,13 +429,23 @@ function renderCandidateBatch() {
     if (candidate._metadataProposalId === undefined) candidate._metadataProposalId = chosen?.id || null;
     const preview = proposals.find(item => item.id === candidate._metadataProposalId) || proposals[0];
     const options = `<option value="">Keep reviewed fields; no edition</option>` + proposals.map(item => `<option value="${item.id}"${item.id === candidate._metadataProposalId ? " selected" : ""}>${escapeHtml([item.title, item.publisher, item.publishedDate, item.isbn13 || item.isbn10].filter(Boolean).join(" · "))}</option>`).join("");
+    const metadataControl = proposals.length ? `<label class="metadata-choice">Edition metadata<select data-metadata-candidate="${candidate.id}">${options}</select></label>` : `<button class="button button-quiet" data-refresh-metadata="${candidate.id}" type="button">Retry metadata &amp; covers</button>`;
     const row = document.createElement("article"); row.className = "candidate-batch-row" + (complete ? "" : " needs-review");
     const cover = preview?.coverUrl ? `<img class="candidate-cover" src="${escapeHtml(preview.coverUrl)}" alt="Possible edition cover" loading="lazy">` : `<span class="candidate-placeholder">▤</span>`;
-    row.innerHTML = `${cover}<label class="candidate-select"><input type="checkbox" data-batch-candidate="${candidate.id}"${candidate._selected ? " checked" : ""}><span><strong>${escapeHtml(candidate.fields.title || "Title needed")}</strong><small>${escapeHtml(candidate.fields.author || "Author needed")}${candidate.fields.genre ? " · " + escapeHtml(candidate.fields.genre) : ""}</small><small>${candidate.fields.isbn ? "Visible ISBN " + escapeHtml(candidate.fields.isbn) : "ISBN will only come from a selected edition"}</small></span></label><label class="metadata-choice">Edition metadata<select data-metadata-candidate="${candidate.id}">${options}</select></label><span class="candidate-state">${complete ? "Ready" : "Needs edit"}</span><button class="button button-quiet" data-edit-candidate="${candidate.id}" type="button">Edit</button>`;
+    row.innerHTML = `${cover}<label class="candidate-select"><input type="checkbox" data-batch-candidate="${candidate.id}"${candidate._selected ? " checked" : ""}><span><strong>${escapeHtml(candidate.fields.title || "Title needed")}</strong><small>${escapeHtml(candidate.fields.author || "Unreadable author")}${candidate.fields.genre ? " · " + escapeHtml(candidate.fields.genre) : ""}</small><small>${candidate.fields.isbn ? "Visible ISBN " + escapeHtml(candidate.fields.isbn) : proposals.length ? "Select an edition to add ISBN and cover" : "No metadata match loaded yet"}</small></span></label>${metadataControl}<span class="candidate-state">${complete ? "Ready" : "Needs edit"}</span><button class="button button-quiet" data-edit-candidate="${candidate.id}" type="button">Edit</button>`;
     list.append(row);
   });
   list.querySelectorAll("[data-batch-candidate]").forEach(input => input.addEventListener("change", () => { const candidate = state.candidateQueue.find(item => item.id === input.dataset.batchCandidate); if (candidate) candidate._selected = input.checked; }));
   list.querySelectorAll("[data-metadata-candidate]").forEach(select => select.addEventListener("change", () => { const candidate = state.candidateQueue.find(item => item.id === select.dataset.metadataCandidate); if (candidate) { candidate._metadataProposalId = select.value || null; renderCandidateBatch(); } }));
+  list.querySelectorAll("[data-refresh-metadata]").forEach(button => button.addEventListener("click", async () => {
+    button.disabled = true; button.textContent = "Looking up editions…";
+    try {
+      const updated = await api("/api/manage/candidates/" + button.dataset.refreshMetadata + "/metadata-refresh", { method: "POST", body: {} });
+      const prior = state.candidateQueue.find(item => item.id === updated.id), index = state.candidateQueue.findIndex(item => item.id === updated.id);
+      updated._selected = prior?._selected; updated._metadataProposalId = null; if (index >= 0) state.candidateQueue[index] = updated;
+      renderCandidateBatch(); toast(updated.metadataProposals?.length ? "Metadata options ready — choose the matching edition" : "No matching editions found");
+    } catch (error) { button.disabled = false; button.textContent = "Retry metadata & covers"; toast(error.message); }
+  }));
 }
 
 function openCandidateEdit(id) {

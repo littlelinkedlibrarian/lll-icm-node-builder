@@ -11,7 +11,7 @@ const description = (value: string[] | string | undefined) => Array.isArray(valu
 
 export class OpenLibraryProvider implements BibliographicProvider {
   private readonly cache = new Map<string, { expires: number; value: Proposal[] }>();
-  constructor(private readonly userAgent: string, private readonly timeoutMs = 8000) {}
+  constructor(private readonly userAgent: string, private readonly timeoutMs = 10000) {}
   async findEditions(fields: CandidateFields): Promise<Proposal[]> {
     const visibleIsbn = validatedIsbn(fields.isbn);
     const params = new URLSearchParams({ limit: "5", fields: "key,title,author_name,isbn,edition_key,language,publisher,publish_date,first_publish_year,cover_i,subject,first_sentence,editions,editions.key,editions.title,editions.isbn_10,editions.isbn_13,editions.language,editions.publisher,editions.publish_date,editions.cover_i" });
@@ -19,8 +19,17 @@ export class OpenLibraryProvider implements BibliographicProvider {
     if (fields.language?.length === 2) params.set("lang", fields.language);
     const cacheKey = params.toString(), cached = this.cache.get(cacheKey);
     if (cached && cached.expires > Date.now()) return cached.value;
-    const response = await fetch("https://openlibrary.org/search.json?" + cacheKey, { headers: { "user-agent": this.userAgent, accept: "application/json" }, signal: AbortSignal.timeout(this.timeoutMs) });
-    if (!response.ok) throw new Error("bibliographic_unavailable");
+    const url = "https://openlibrary.org/search.json?" + cacheKey;
+    let response: Response | undefined;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        response = await fetch(url, { headers: { "user-agent": this.userAgent, accept: "application/json" }, signal: AbortSignal.timeout(this.timeoutMs) });
+        if (response.ok || (response.status < 500 && response.status !== 429)) break;
+      } catch {
+        if (attempt === 1) throw new Error("bibliographic_unavailable");
+      }
+    }
+    if (!response?.ok) throw new Error("bibliographic_unavailable");
     const payload = await response.json() as { docs?: OpenLibraryDoc[] };
     const value = (payload.docs ?? []).slice(0, 5).map((doc): Proposal => {
       const edition = doc.editions?.docs?.[0];

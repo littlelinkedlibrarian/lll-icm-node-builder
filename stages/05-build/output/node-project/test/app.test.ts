@@ -8,7 +8,10 @@ import type { Embedder, VisionExtractor } from "../src/ports/index.js";
 
 const vector = (index: number) => Array.from({ length: 1536 }, (_, i) => i === index ? 1 : 0);
 class FakeEmbedder implements Embedder {
-  async embed(text: string) { const query = text.toLowerCase(); return vector(query.includes("ocean") || query.includes("océano") ? 0 : 1); }
+  async embed(text: string) {
+    const query = text.toLowerCase();
+    return vector(["ocean", "océano", "海洋", "oceano", "océan"].some(term => query.includes(term)) ? 0 : 1);
+  }
 }
 class FakeVision implements VisionExtractor {
   async extract() {
@@ -111,7 +114,9 @@ describe("reference node", () => {
     expect(() => store.put(ocean.id, [1], "book-search-v1", "bad", "text-embedding-3-small")).toThrow("embedding_dimension");
     const semantic = new (await import("../src/application/services.js")).SearchService(store, store, new FakeEmbedder());
     expect((await semantic.search("ocean", box.id)).mode).toBe("semantic");
-    expect((await semantic.search("un libro sobre el océano", box.id)).data[0]?.id).toBe(ocean.id);
+    for (const query of ["un libro sobre el océano", "一本关于海洋的书", "un libro sull'oceano", "un livre sur l'océan"]) {
+      expect((await semantic.search(query, box.id)).data[0]?.id).toBe(ocean.id);
+    }
     const fallback = new (await import("../src/application/services.js")).SearchService(store, { put() {}, search() { throw new Error("offline"); } }, new FakeEmbedder());
     expect(await fallback.search("ocean", box.id)).toMatchObject({ mode: "keyword_fallback", data: [{ id: ocean.id }] });
   });

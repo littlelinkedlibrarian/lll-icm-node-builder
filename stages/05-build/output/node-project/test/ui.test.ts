@@ -42,6 +42,10 @@ describe("branded browser application", () => {
     expect(browserScript).toContain("openBookDetails");
     expect(browserScript).toContain("makeOperatorAction");
     expect(browserScript).toContain("async function deleteBook");
+    expect(browserScript).toContain("Photo saved safely");
+    expect(browserScript).toContain("metadata-options");
+    expect(browserScript).toContain("Retry metadata & covers");
+    expect(home.body).toContain("Find metadata &amp; cover");
     expect(browserScript).toContain(`closeDialogIfOpen("book-details-dialog")`);
     expect(browserScript).toContain(`const target = event.target.closest("button")`);
     expect(browserScript).toContain(`openDialog("activity-dialog")`);
