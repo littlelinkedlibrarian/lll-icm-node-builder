@@ -6,6 +6,8 @@ A person can represent a library box or collection, record books or approved ite
 
 Authentication, AI, vectors, public deployment, and federation are capability choices.
 
+A personal vault, patron account, checkout history, or private collection may be useful in a larger product, but none is required for a useful node or for LLL compatibility unless the selected contract explicitly says otherwise. Do not copy Central-only identity or vault behavior into a learner app by implication.
+
 ## Capability ladder
 
 1. Local catalog: box, item placement, exact search, export, backup, deletion.
@@ -33,6 +35,8 @@ Authentication, AI, vectors, public deployment, and federation are capability ch
 Treat the uploaded Books image as evidence and a private activity parent, not as the book cover. Persist it before extraction when retention is approved; connect every proposed, confirmed, rejected, or failed child result to that activity. Preserve the ability to inspect and zoom the original without making it public.
 
 An ISBN identifies an edition, while title and author commonly identify a work with many editions. Accept a model ISBN only when visibly supported and checksum-valid. Otherwise request bounded edition proposals from the approved bibliographic adapter and require a human selection. Store provider identifiers, retrieval time, source URL, selected fields, and attribution. Cache low-volume lookups and keep manual confirmation available during provider failure.
+
+Do not choose an edition automatically merely because a provider returned one result. Permit metadata lookup both during candidate review and later from an existing book detail view so a confirmed record can recover from an earlier provider outage or incomplete scan. Normalize every provider response at the adapter boundary before storing or presenting it.
 
 Reference provider documentation:
 

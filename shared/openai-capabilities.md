@@ -31,6 +31,7 @@ If justified:
 - embed confirmed records
 - define distance, indexes, filters, missing-vector behavior, and re-embedding
 - choose a vector-capable database, separate vector store, or defer with approval
+- name the target languages and build a live retrieval-quality set for each one; deterministic tests prove vector plumbing, not multilingual usefulness
 
 Do not serialize vectors into text and call it vector search unless small-scale application comparison is intentional and bounded.
 
@@ -41,6 +42,8 @@ When selected, use OpenAI vision to create a bounded descriptor and an OpenAI em
 ## Resilience
 
 Keep keys server-side. Limit data, size, rate, timeout, and retries. Queue slow work. Keep manual catalog behavior working without OpenAI. Production never returns fixture data as a successful extraction.
+
+For a multi-item image, enrich every structurally valid candidate in the approved batch. Do not silently enrich only the first candidate or first page. Bound concurrency and retries, preserve successful candidates when one lookup fails, show partial failures beside the affected candidates, and provide an explicit per-candidate retry before confirmation.
 
 ## Uncertain object metadata
 

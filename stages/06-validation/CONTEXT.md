@@ -18,11 +18,13 @@ Verify the built project against its contracts, user journeys, operations, and s
 1. Start from a clean checkout or equivalent clean project state.
 2. Run static checks, unit tests, integration tests, external contract tests, and selected end-to-end journeys.
 3. Test restart persistence, OpenAI outage, network outage, and missing-vector behavior when applicable.
-4. For connected paths, prove product operation with the LLL adapter disabled; prove paired-coordinate validation, zero coordinates, unknown-location policy, stale heartbeat, health-failure exclusion, privacy, partial network failure, and that one application's user bearer token is not forwarded into another authentication realm.
-5. For LLL-hosted paths, prove tenant isolation, delegated hostname and TLS, operator access, backup, export, deletion, rollback, and the documented graduation path.
-6. Run secret, dependency, license, migration, backup, restore, health, and recovery checks required by the architecture.
-7. Compare observed evidence with every acceptance row.
-8. Mark failures without weakening the specification. Fix Stage 05 output and rerun this stage.
+4. For selected AI and metadata paths, use malformed and variable provider fixtures, multi-item batches, partial provider failure, per-item retry, later metadata recovery, and write-success/follow-up-view-failure cases. If multilingual retrieval is claimed, run a dated live quality set for every named language and record rankings; deterministic doubles cover plumbing only.
+5. For connected paths, prove product operation with the LLL adapter disabled; prove paired-coordinate validation, zero coordinates, unknown-location policy, stale heartbeat, health-failure exclusion, privacy, partial network failure, and that one application's user bearer token is not forwarded into another authentication realm.
+6. For LLL-hosted paths, prove tenant isolation, delegated hostname and TLS, operator access, backup, export, deletion, rollback, and the documented graduation path.
+7. Verify real-image, empty-image, close, edit, and destructive-control presentation in every shipped theme, including keyboard focus and contrast.
+8. Run secret, dependency, license, migration, backup, restore, health, and recovery checks required by the architecture.
+9. Compare observed evidence with every acceptance row.
+10. Mark failures without weakening the specification. Fix Stage 05 output and rerun this stage.
 
 ## Audit
 
