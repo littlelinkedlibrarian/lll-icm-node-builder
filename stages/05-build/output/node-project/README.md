@@ -45,6 +45,8 @@ Replace `OPERATOR_TOKEN` in `.env` with a long random value. Export the variable
 
 For a temporary, publicly writable hackathon demonstration, set `PUBLIC_DEMO_OPERATOR=true`. This opens browser management routes without publishing the real token. The MCP endpoint remains token-protected. Disable the flag after judging and restore the demo data from a backup if visitors changed it.
 
+To connect the same temporary demonstration directly from ChatGPT developer mode without OAuth, also set `PUBLIC_DEMO_MCP=true`. This makes every MCP tool—including write tools—publicly callable. Use it only for a time-bounded, backup-protected demo; disable it immediately after judging. Normal deployments should use OAuth 2.1 rather than this flag.
+
 ```bash
 npm install
 npm run check

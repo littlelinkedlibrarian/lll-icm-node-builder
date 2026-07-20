@@ -50,6 +50,7 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
     }
   };
   const mcpAuth = async (request: FastifyRequest, reply: FastifyReply) => {
+    if (input.config.publicDemoMcp) return;
     if (!input.config.operatorToken || request.headers.authorization !== `Bearer ${input.config.operatorToken}`) {
       return reply.code(401).send({ error: "unauthorized", message: "A local operator token is required" });
     }
@@ -79,7 +80,7 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
     const photo = demoPhotos.get((request.params as { name: string }).name);
     return photo ? reply.header("cache-control", "public, max-age=3600").type("image/jpeg").send(photo) : reply.code(404).send({ error: "not_found", message: "Demo photo not found" });
   });
-  app.get("/api/meta", async () => ({ name: input.config.nodeName, publicBaseUrl: input.config.publicBaseUrl.href, compatibilityVersion: "0.1.0", publicDemoOperator: input.config.publicDemoOperator }));
+  app.get("/api/meta", async () => ({ name: input.config.nodeName, publicBaseUrl: input.config.publicBaseUrl.href, compatibilityVersion: "0.1.0", publicDemoOperator: input.config.publicDemoOperator, publicDemoMcp: input.config.publicDemoMcp }));
   app.options("/mcp", async (_request, reply) => reply.headers({
     "access-control-allow-origin": "*", "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
     "access-control-allow-headers": "authorization, content-type, mcp-protocol-version, mcp-session-id"
