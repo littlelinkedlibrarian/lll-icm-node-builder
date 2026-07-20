@@ -76,6 +76,13 @@ describe("branded browser application", () => {
     expect((await app.inject(request)).json()).toEqual({ boxes: 1, books: 0 });
     const managedBoxes = (await app.inject({ method: "GET", url: "/api/manage/boxes", headers: { authorization: "Bearer secret" } })).json();
     expect(managedBoxes.data).toEqual([expect.objectContaining({ name: "Happy Box", location: "66 Colon Ave, St. Augustine, FL 32084", latitude: 29.927154, longitude: -81.325848 })]);
+    const compatibleBoxes = (await app.inject({ method: "GET", url: "/api/boxes" })).json();
+    expect(compatibleBoxes.data).toEqual([
+      expect.objectContaining({
+        name: "Happy Box",
+        imageUrl: "https://judge.example/demo/happy-box-outdoor.jpg",
+      }),
+    ]);
     expect(store.listBooks(1, 50).total).toBe(0);
     for (const name of ["happy-box-outdoor.jpg", "shelf-mixed-catalog.jpg", "shelf-math-science.jpg", "shelf-thinking.jpg"]) {
       const photo = await app.inject({ method: "GET", url: "/demo/" + name });

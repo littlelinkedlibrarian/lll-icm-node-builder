@@ -95,7 +95,9 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
     location: box.location ?? "",
     latitude: box.latitude === null ? null : String(box.latitude),
     longitude: box.longitude === null ? null : String(box.longitude),
-    imageUrl: null,
+    imageUrl: box.name === "Happy Box"
+      ? new URL("/demo/happy-box-outdoor.jpg", input.config.publicBaseUrl).href
+      : null,
     ownerId: null,
     createdAt: box.createdAt,
     updatedAt: box.updatedAt,
