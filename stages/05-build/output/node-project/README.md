@@ -109,7 +109,7 @@ https://happybox.littlelinkedlibrarian.com/api/   compatible API
 https://happybox.littlelinkedlibrarian.com/mcp    authenticated agent interface
 ```
 
-Current Central derives the UI origin from the registered endpoint, so splitting UI and API across domains will break navigation until Central gains explicit `uiUrl` and `apiBaseUrl` fields. Registration is opt-in and disabled by default. Compatibility is not a claim of network membership.
+Current Central derives the UI origin from the registered endpoint, so splitting UI and API across domains will break navigation until Central gains explicit `uiUrl` and `apiBaseUrl` fields. Registration is opt-in and disabled by default. When approved, set `DISCOVERY_ENABLED=true` plus the four `CENTRAL_*` values shown in `.env.example`; the app sends a bounded startup heartbeat and repeats it on the configured interval. Heartbeat failure is logged and never disables local operation. The single-purpose node key is distinct from both the local operator token and any Central user credential. Compatibility is not a claim of network membership.
 
 ## OpenAI ownership
 
