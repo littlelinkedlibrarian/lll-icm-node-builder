@@ -19,6 +19,10 @@ const candidateShape = {
   title: z.string().min(1), author: z.string().min(1), isbn: z.string().nullable(), genre: z.string().nullable(),
   description: z.string().nullable(), language: z.string().nullable(), condition: z.string().nullable()
 };
+const reviewedCandidateShape = {
+  ...candidateShape,
+  description: z.string().min(1).describe("A concise, reader-facing description written from the reviewed identity and edition metadata. Avoid unsupported plot claims."),
+};
 const imageFile = z.object({ download_url: z.string().url(), file_id: z.string(), mime_type: z.string().optional(), file_name: z.string().optional() });
 
 export interface McpDependencies {
@@ -31,7 +35,12 @@ export interface McpDependencies {
 }
 
 function conciseBook(book: Book, store: SqliteStore) {
-  return { id: book.id, boxId: book.boxId, boxName: store.getBox(book.boxId)?.name ?? null, title: book.title, author: book.author, genre: book.genre, description: book.description };
+  return {
+    id: book.id, boxId: book.boxId, boxName: store.getBox(book.boxId)?.name ?? null,
+    title: book.title, author: book.author, isbn: book.isbn, genre: book.genre,
+    description: book.description, language: book.language, coverUrl: book.coverUrl ?? null,
+    publicationYear: book.publicationYear ?? null, metadataProvenance: book.metadataProvenance ?? null
+  };
 }
 
 async function downloadImage(reference: z.infer<typeof imageFile>): Promise<{ mimeType: string; bytes: Uint8Array }> {
@@ -48,7 +57,7 @@ async function downloadImage(reference: z.infer<typeof imageFile>): Promise<{ mi
 
 export function createMcpServer(deps: McpDependencies): McpServer {
   const server = new McpServer({ name: "little-green-library", version: "0.1.0" }, {
-    instructions: "Read before writing. A photo creates one or more pending candidates only. Review each candidate independently. Call prepare_book_add with reviewed fields, then call add_book_to_box only after the user explicitly confirms the candidate and destination box in the current turn. Reuse idempotency keys on retries."
+    instructions: "Read before writing. A photo creates pending candidates and bounded edition proposals only. Review each candidate independently. When proposals exist, choose the matching edition so ISBN and cover metadata persist. Call prepare_book_add with corrected identity fields and a concise AI-authored reader description. Then call add_book_to_box with the reviewed metadata proposal only after the user explicitly confirms the candidate and destination box in the current turn. Reuse idempotency keys on retries."
   });
   const candidates = new CandidateService(deps.store, deps.vision, deps.media || new MemoryMediaStore(), deps.bibliography);
   const search = new SearchService(deps.store, deps.store, deps.embedder);
@@ -136,19 +145,25 @@ export function createMcpServer(deps: McpDependencies): McpServer {
   });
 
   server.registerTool("prepare_book_add", {
-    title: "Prepare a reviewed book addition", description: "Use this to save the user's corrections to a pending candidate before asking for final confirmation. It does not add a book.",
-    inputSchema: { candidateId: z.string(), fields: z.object(candidateShape) }, outputSchema: { candidate: z.any(), requiresConfirmation: z.boolean() }, annotations: annotations.write
+    title: "Prepare a reviewed book addition", description: "Save corrected identity fields and a concise AI-authored catalog description before final confirmation. Preserve the candidate's edition proposals for the next add step. This does not add a book.",
+    inputSchema: { candidateId: z.string(), fields: z.object(reviewedCandidateShape) }, outputSchema: { candidate: z.any(), requiresConfirmation: z.boolean() }, annotations: annotations.write
   }, async ({ candidateId, fields }) => {
     const candidate = deps.store.updateFields(candidateId, candidateFields(fields, true)); if (!candidate) throw new Error("Only a pending candidate can be prepared");
     return { structuredContent: { candidate, requiresConfirmation: true }, content: [{ type: "text", text: `Prepared “${candidate.fields.title}” for ${deps.store.getBox(candidate.boxId)?.name ?? "the selected box"}. Ask for explicit confirmation before adding it.` }] };
   });
 
   server.registerTool("add_book_to_box", {
-    title: "Add the confirmed book to its box", description: "Call only after the user explicitly confirms the reviewed candidate and destination box in the current turn. Retrying with the same idempotency key returns the original book.",
-    inputSchema: { candidateId: z.string(), confirmed: z.literal(true), idempotencyKey: z.string().min(8) }, outputSchema: { book: z.any(), candidateId: z.string(), confirmed: z.boolean() }, annotations: annotations.write,
+    title: "Add the enriched, confirmed book to its box", description: "Call only after the user confirms the reviewed candidate, destination box, and matching edition. Pass the chosen metadata proposal so ISBN, cover, publication year, language, and available bibliographic description persist. If proposals exist, omitting a choice is rejected instead of silently discarding metadata. Retrying with the same idempotency key returns the original book.",
+    inputSchema: { candidateId: z.string(), metadataProposalId: z.string().nullable(), confirmed: z.literal(true), idempotencyKey: z.string().min(8) }, outputSchema: { book: z.any(), candidateId: z.string(), confirmed: z.boolean() }, annotations: annotations.write,
     _meta: { "openai/toolInvocation/invoking": "Adding the confirmed book…", "openai/toolInvocation/invoked": "Book added." }
-  }, async ({ candidateId, idempotencyKey }) => {
+  }, async ({ candidateId, metadataProposalId, idempotencyKey }) => {
     const reviewed = deps.store.getCandidate(candidateId); if (reviewed) candidateFields(reviewed.fields, true);
+    if (!reviewed?.fields.description?.trim()) throw new Error("Prepare a concise catalog description before adding this book");
+    const proposals = reviewed.metadataProposals ?? [];
+    const alreadySelected = proposals.find(item => item.selected);
+    const selectedId = metadataProposalId ?? alreadySelected?.id ?? null;
+    if (proposals.length && !selectedId) throw new Error("Choose the matching edition metadata proposal before adding this book");
+    if (selectedId && alreadySelected?.id !== selectedId) deps.store.selectMetadataProposal(candidateId, selectedId);
     const result = deps.store.confirm(candidateId, "chatgpt-operator", idempotencyKey); try { await search.index(result.book); } catch { /* keyword fallback remains available */ }
     return { structuredContent: { book: conciseBook(result.book, deps.store), candidateId, confirmed: true }, content: [{ type: "text", text: `Added “${result.book.title}” to ${deps.store.getBox(result.book.boxId)?.name ?? "the selected box"}.` }] };
   });
