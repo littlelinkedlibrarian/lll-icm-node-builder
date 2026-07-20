@@ -511,4 +511,4 @@ $("#activity-viewer").addEventListener("wheel", event => { event.preventDefault(
 function fileBase64(file) { return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result).split(",")[1]); reader.onerror = reject; reader.readAsDataURL(file); }); }
 function escapeHtml(value) { return String(value ?? "").replace(/[&<>'"]/g, character => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", "'":"&#39;", '"':"&quot;" })[character]); }
 
-load().catch(error => { $("#node-health").textContent = "offline"; toast(error.message); });
+(state.token ? loadManaged() : load()).catch(error => { $("#node-health").textContent = "offline"; toast(error.message); });
