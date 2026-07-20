@@ -1,4 +1,5 @@
-const state = { boxes: [], books: [], visibleBooks: [], captures: [], activities: [], captureImages: new Map(), activityImages: new Map(), activityZoom: 1, activeBoxId: null, activeBookId: null, bookReturnBoxId: null, inventoryThings: [], candidateQueue: [], scanKind: "books", token: localStorage.getItem("lll.operatorToken") ?? "", candidate: null, theme: localStorage.getItem("lll.theme") ?? "garden" };
+const PUBLIC_DEMO_TOKEN = "public-hackathon-demo";
+const state = { boxes: [], books: [], visibleBooks: [], captures: [], activities: [], captureImages: new Map(), activityImages: new Map(), activityZoom: 1, activeBoxId: null, activeBookId: null, bookReturnBoxId: null, inventoryThings: [], candidateQueue: [], scanKind: "books", token: localStorage.getItem("lll.operatorToken") ?? "", publicDemoOperator: false, candidate: null, theme: localStorage.getItem("lll.theme") ?? "garden" };
 const $ = (selector, root = document) => root.querySelector(selector);
 const $$ = (selector, root = document) => [...root.querySelectorAll(selector)];
 const empty = () => $("#empty-template").content.cloneNode(true);
@@ -41,10 +42,13 @@ async function load() {
   ]);
   $("#node-name").textContent = meta.name;
   $("#node-health").textContent = health.status;
+  state.publicDemoOperator = meta.publicDemoOperator === true;
+  if (state.publicDemoOperator && !state.token) state.token = PUBLIC_DEMO_TOKEN;
   state.boxes = boxes.data; state.books = books.data;
   $("#box-count").textContent = boxes.pagination.total;
   $("#book-count").textContent = books.pagination.total;
   renderBoxes(); renderBooks(state.books); populateBoxes(); state.captures = []; updateAccess();
+  if (state.publicDemoOperator) return loadManaged();
 }
 
 async function loadManaged() {
@@ -56,13 +60,13 @@ async function loadManaged() {
 }
 
 function updateAccess() {
-  $("#operator-button").textContent = state.token ? "Operator menu" : "Operator access";
+  $("#operator-button").textContent = state.publicDemoOperator ? "Public demo mode" : state.token ? "Operator menu" : "Operator access";
   $("#operator-button").classList.toggle("button-primary", Boolean(state.token));
   $("#activity-history").classList.toggle("hidden", !state.token);
-  $("#operator-token-label").classList.toggle("hidden", Boolean(state.token));
-  $("#operator-connect").classList.toggle("hidden", Boolean(state.token));
-  $("#operator-logout").classList.toggle("hidden", !state.token);
-  $("#access-status").textContent = state.token ? "Operator access is active on this device. You can scan, review, add, edit, and delete local inventory." : "Guest mode can browse public boxes, book details, search, maps, and confirmed Assorted Things. Connect as an operator to manage this node.";
+  $("#operator-token-label").classList.toggle("hidden", state.publicDemoOperator || Boolean(state.token));
+  $("#operator-connect").classList.toggle("hidden", state.publicDemoOperator || Boolean(state.token));
+  $("#operator-logout").classList.toggle("hidden", state.publicDemoOperator || !state.token);
+  $("#access-status").textContent = state.publicDemoOperator ? "Hackathon demo mode is public. You can scan, review, add, edit, and delete this demonstration inventory without an operator token." : state.token ? "Operator access is active on this device. You can scan, review, add, edit, and delete local inventory." : "Guest mode can browse public boxes, book details, search, maps, and confirmed Assorted Things. Connect as an operator to manage this node.";
 }
 
 function makeOperatorAction(label, symbol, dataset) {

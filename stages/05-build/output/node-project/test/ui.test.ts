@@ -104,4 +104,17 @@ describe("branded browser application", () => {
     expect((await app.inject({ method: "OPTIONS", url: "/mcp" })).statusCode).toBe(204);
     await app.close();
   });
+
+  it("opens browser management in explicit demo mode but keeps MCP protected", async () => {
+    const app = buildApp({ config: {
+      host: "127.0.0.1", port: 3000, databasePath: ":memory:", nodeName: "Public Judge Box",
+      publicBaseUrl: new URL("https://judge.example"), operatorToken: "secret", publicDemoOperator: true,
+      visionModel: "gpt-5.6-sol", embeddingModel: "text-embedding-3-small", discoveryEnabled: false
+    }, db, store: new SqliteStore(db) });
+    expect((await app.inject({ method: "GET", url: "/api/meta" })).json()).toMatchObject({ publicDemoOperator: true });
+    expect((await app.inject({ method: "GET", url: "/api/manage/activities" })).statusCode).toBe(200);
+    expect((await app.inject({ method: "POST", url: "/api/manage/demo/seed", payload: {} })).statusCode).toBe(200);
+    expect((await app.inject({ method: "POST", url: "/mcp", payload: {} })).statusCode).toBe(401);
+    await app.close();
+  });
 });

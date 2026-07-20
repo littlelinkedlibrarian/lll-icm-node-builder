@@ -156,7 +156,7 @@ Next allowed stage: Stage 03 architecture.
 2. The node stores the original as a pending-review record without sending it to an AI model.
 3. A human looks at the image and supplies only the metadata useful to neighbors.
 4. The operator rejects or idempotently confirms the capture. Confirmation records review; it never creates a book.
-5. Captures and images require the local operator token and never appear in the six Central compatibility reads.
+5. Captures and images require the local operator token by default and never appear in the six Central compatibility reads. A time-bounded, explicitly configured hackathon demo may open browser management without exposing the real token; MCP remains authenticated and the owner must take a backup before enabling the mode.
 
 ### Branded presentation
 

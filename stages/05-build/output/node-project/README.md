@@ -43,6 +43,8 @@ cp .env.example .env
 
 Replace `OPERATOR_TOKEN` in `.env` with a long random value. Export the variables using your preferred process manager or shell, then:
 
+For a temporary, publicly writable hackathon demonstration, set `PUBLIC_DEMO_OPERATOR=true`. This opens browser management routes without publishing the real token. The MCP endpoint remains token-protected. Disable the flag after judging and restore the demo data from a backup if visitors changed it.
+
 ```bash
 npm install
 npm run check

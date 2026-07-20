@@ -2,7 +2,11 @@
 
 Public URL: <https://happybox.littlelinkedlibrarian.com>
 
-## Connect as the local operator
+## Hackathon public demo
+
+When `PUBLIC_DEMO_OPERATOR=true`, open the public URL directly. The header says **Public demo mode**, and browser scanning, review, history, and CRUD require no token. MCP remains authenticated.
+
+For the normal protected mode, connect as the local operator:
 
 Retrieve the token on the host without copying it into chat or source control:
 
@@ -25,7 +29,7 @@ Open the public URL, choose **Operator access**, paste the token, and connect.
 9. Return to the catalog and verify confirmed books appear. A selected edition should show its cover when Open Library supplied one; unmatched books should use the spine placeholder.
 10. In **Scanner**, select **Assorted things**, capture a puzzle, card, art object, or trinket, and enter the human description yourself. Confirm it appears only inside Happy Box with a zoomable image; this path must not call OpenAI. If the immediate review panel cannot open, verify the UI says the photo was saved safely and that it can be reopened from the box.
 11. Search for the same English catalog concept using Spanish, Simplified Chinese, Italian, and French phrases. Record the result order and mode; this is the live multilingual quality evidence.
-12. Open **Operator menu**, log out on this device, and confirm public boxes, books, search, maps, book details, and confirmed Assorted Things still work while scanning, private history, and CRUD require operator access. Log back in, reload, and confirm all completed writes and Activity History persist.
+12. Reload and confirm all completed writes and Activity History persist. After judging, disable `PUBLIC_DEMO_OPERATOR`, then verify logout returns the browser to public read-only access and operator login restores management.
 
 ## Central companion loop
 
@@ -41,8 +45,8 @@ After the Central operator has approved `lll-happy-box` and the node log shows `
 
 ## Boundaries worth checking
 
-- Opening `/api/manage/activities` or `/api/manage/assorted` without operator access returns `401`.
-- Opening a protected activity image without the bearer token returns `401`.
+- In normal mode, `/api/manage/*` and protected images return `401` without operator access. In explicit public demo mode, browser management routes are open and the UI clearly labels that state.
+- `/mcp` remains protected by the operator credential in both modes.
 - Public `/api/boxes` includes Happy Box, but private Assorted Things data is absent from the Central-compatible reads.
 - If OpenAI extraction fails, the application remains usable and the failed activity keeps its uploaded image in protected history.
 - The beta Central application remains at <https://beta.littlelinkedlibrarian.com>.
