@@ -53,3 +53,7 @@ The final command is rerun during Stage 06; counts above describe the completed 
 The foundation intentionally has no branded browser UI, map, persistent cover store, production session/login, Central registry heartbeat implementation, MCP server, ChatGPT component, deployment manifest, or live Central browser proof. Those are demo/application slices, not hidden claims of this branch.
 
 The next branch should start with the branded UI and operator workflow, then prove Central refresh against this API, then add MCP tools that reuse these application operations and permissions.
+
+## Later-phase status
+
+The handoff above records what Phase 1.5A deliberately omitted. As of 2026-07-20, later merged phases provide the branded browser application, map, persistent media, metadata recovery, MCP tools, host deployment, and an optional Central heartbeat adapter. The adapter is disabled unless explicitly configured and never makes local catalog behavior depend on Central.

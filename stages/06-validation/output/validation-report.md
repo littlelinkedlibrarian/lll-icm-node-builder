@@ -10,7 +10,7 @@ Deployed target: `https://happybox.littlelinkedlibrarian.com`
 
 The node builds, passes its automated suite, runs with persistent SQLite and sqlite-vec storage, serves the real Happy Box sample inputs, and exposes the same application behavior through its browser and authenticated Streamable HTTP MCP boundaries. The previous MCP schema failure is fixed and covered by a real transport test.
 
-The project is not yet marked hackathon-release complete. OAuth for ChatGPT, the live Central discovery/aggregation loop, and the browser/video walkthrough require explicit human work described below.
+The project is not yet marked hackathon-release complete. OAuth for ChatGPT and the browser/video walkthrough require explicit human work described below. The live Central registry, heartbeat, proximity, aggregation, detail, and inventory reads now pass; the human CRUD-refresh loop remains in the walkthrough.
 
 ## Reproducible automated evidence
 
@@ -45,6 +45,11 @@ Tests use temporary migrated SQLite databases, deterministic OpenAI fakes, the r
 - The outdoor Happy Box photo and all three shelf-scan samples return HTTP 200 as JPEGs.
 - Authenticated public MCP smoke test: 10 tools; `list_my_boxes` succeeded; returned box keys exactly `bookCount`, `id`, `latitude`, `location`, `longitude`, and `name`.
 - Existing persistent records were preserved. No live reset or deletion was performed.
+- Central API and scan worker run image tag `staging-6279879-discovery`; readiness passed after applying the already-committed `20260703_add_library_box_location_provenance.sql` migration.
+- The pre-migration Central dump is `/tmp/lll-central-pre-location-20260720T1738Z.sql` (203,979 bytes).
+- `lll-happy-box` is active, public, healthy, and has a fresh authenticated heartbeat. Its single-purpose key is stored only in the host `0600` runtime environment.
+- Live Central discovery returned one eligible node. Aggregate list, 5 km proximity, box detail, and box-inventory reads returned Happy Box with `nodesQueried: 1`, the correct source label, branded `uiUrl`, and three current books.
+- A paired node backup was verified at `/app/backups/lll-node-20260720T174005Z.sqlite` before the heartbeat-enabled rebuild.
 
 ## Demo-data disposition
 
@@ -68,7 +73,7 @@ Tests use temporary migrated SQLite databases, deterministic OpenAI fakes, the r
 | Browser UI | PASS automated; HUMAN pending | Responsive application, box/book detail modals, themes, map/card controls, scanner input state, operator logout, and delete regressions |
 | MCP application boundary | PASS automated and live smoke | 10 authenticated tools, widget resource, strict declared schemas, and canonical application services |
 | OAuth for ChatGPT | PENDING | Static bearer authentication works for local/operator testing; OAuth 2.1 discovery, authorization-code/PKCE flow, JWT validation, scopes, and ChatGPT connection are not configured |
-| Central compatibility | PASS at node contract and heartbeat adapter; LIVE LOOP pending | OpenAPI compatibility and the optional single-purpose heartbeat client are tested; registry promotion, active-node discovery, aggregation, and the Central-to-node-to-Central browser demo still need live evidence |
+| Central compatibility | PASS automated and live reads; HUMAN CRUD-refresh pending | Registry promotion, fresh heartbeat, health/privacy/proximity eligibility, aggregate lists, box detail, inventory, source label, and branded link passed live; the browser card/modal and one visible create/delete refresh remain in the human walkthrough |
 | Broad audit trail | PARTIAL | Scan decisions are recorded; complete create/update/delete actor audit coverage remains hardening work |
 
 ## Required human release review
@@ -80,10 +85,10 @@ Tests use temporary migrated SQLite databases, deterministic OpenAI fakes, the r
 5. Test mobile camera capture and the complete Assorted Things human-review path.
 6. Test the MCP endpoint with MCP Inspector using the operator token.
 7. Choose and configure an OAuth 2.1 provider before connecting the MCP app to ChatGPT.
-8. Decide whether Central registration/aggregation is part of the recorded submission demo or a clearly labeled compatible companion.
+8. Run the **Central companion loop** in `deploy/HUMAN-TEST.md` and decide whether to include it in the recorded submission demo or label it as the compatible companion.
 
 ## Release blockers versus follow-up
 
-OAuth is a blocker only if the submitted experience promises direct ChatGPT app access. Central registration is a blocker only if the video promises live federated discovery. Neither blocks a truthful demo of the standalone AI-built node, its browser UI, GPT-5.6 extraction, local vector search, activity history, or Inspector-tested MCP interface.
+OAuth is a blocker only if the submitted experience promises direct ChatGPT app access. The Central machine loop is proven; its human CRUD-refresh walkthrough is a blocker only if the video promises that exact live journey. Neither blocks a truthful demo of the standalone AI-built node, its browser UI, GPT-5.6 extraction, local vector search, activity history, or Inspector-tested MCP interface.
 
 Do not mark Stage 07 complete until the human walkthrough is recorded and every capability claimed in the submission has matching evidence.
