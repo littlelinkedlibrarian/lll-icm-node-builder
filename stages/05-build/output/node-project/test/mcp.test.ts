@@ -66,15 +66,25 @@ describe("MCP Apps adapter", () => {
     const store = new SqliteStore(db);
     const box = store.create({ name: "Chat Box", description: null, location: "Park", latitude: 0, longitude: 0, visibility: "public" });
     const candidate = store.createCandidate(box.id, { title: "Draft", author: "Reader", isbn: null, genre: null, description: null, language: null, condition: null }, { provider: "fixture" });
+    const [proposal] = store.addMetadataProposals(candidate.id, [{
+      provider: "openlibrary", workId: "OL1W", editionId: "OL1M", isbn10: null, isbn13: "9780306406157",
+      title: "Reviewed", authors: ["Reader"], description: "A bibliographic summary.", language: "eng",
+      publisher: "Example Press", publishedDate: "2024", subjects: ["Libraries"],
+      coverUrl: "https://covers.openlibrary.org/b/id/1-M.jpg?default=false", sourceUrl: "https://openlibrary.org/books/OL1M"
+    }]);
     const { server, client } = await connected(store);
     const listed = await client.callTool({ name: "list_my_boxes", arguments: {} });
     expect(listed.structuredContent).toMatchObject({ boxes: [{ id: box.id, bookCount: 0 }] });
-    const prepared = await client.callTool({ name: "prepare_book_add", arguments: { candidateId: candidate.id, fields: { ...candidate.fields, title: "Reviewed" } } });
-    expect(prepared.structuredContent).toMatchObject({ candidate: { fields: { title: "Reviewed" } }, requiresConfirmation: true });
-    const args = { candidateId: candidate.id, confirmed: true, idempotencyKey: "chat-retry-1" };
+    const prepared = await client.callTool({ name: "prepare_book_add", arguments: { candidateId: candidate.id, fields: { ...candidate.fields, title: "Reviewed", description: "An AI-authored reader description." } } });
+    expect(prepared.structuredContent).toMatchObject({ candidate: { fields: { title: "Reviewed", description: "An AI-authored reader description." }, metadataProposals: [{ id: proposal!.id }] }, requiresConfirmation: true });
+    const refused = await client.callTool({ name: "add_book_to_box", arguments: { candidateId: candidate.id, metadataProposalId: null, confirmed: true, idempotencyKey: "missing-edition-1" } });
+    expect(refused.isError).toBe(true);
+    expect(store.listBooks(1, 20).total).toBe(0);
+    const args = { candidateId: candidate.id, metadataProposalId: proposal!.id, confirmed: true, idempotencyKey: "chat-retry-1" };
     const first = await client.callTool({ name: "add_book_to_box", arguments: args });
     const second = await client.callTool({ name: "add_book_to_box", arguments: args });
     expect((first.structuredContent as { book: { id: string } }).book.id).toBe((second.structuredContent as { book: { id: string } }).book.id);
+    expect(first.structuredContent).toMatchObject({ book: { isbn: "9780306406157", coverUrl: proposal!.coverUrl, description: "An AI-authored reader description.", publicationYear: 2024, metadataProvenance: { provider: "openlibrary" } } });
     expect(store.listBooks(1, 20).total).toBe(1);
     await client.close(); await server.close();
   });
