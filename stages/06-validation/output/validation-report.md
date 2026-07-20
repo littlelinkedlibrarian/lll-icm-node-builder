@@ -53,6 +53,8 @@ Tests use temporary migrated SQLite databases, deterministic OpenAI fakes, the r
 - Public hackathon mode was deployed with `PUBLIC_DEMO_OPERATOR=true` and `PUBLIC_DEMO_MCP=true`; an unauthenticated MCP SDK client completed the public HTTPS handshake and listed all 10 tools.
 - The immediate pre-demo rollback backup is `/app/backups/lll-node-20260720T184001Z.sqlite`, with a paired media archive from the same timestamp.
 - The immediate pre-public-MCP rollback backup is `/app/backups/lll-node-20260720T190830Z.sqlite`, with a paired media archive from the same timestamp.
+- MCP confirmation now requires the reviewed edition-proposal argument and a non-empty AI-authored catalog description. The live tool schema exposes both requirements; tests prove available ISBN/cover metadata cannot be silently discarded.
+- The immediate pre-enrichment rollback backup is `/app/backups/lll-node-20260720T193206Z.sqlite`, with a paired media archive from the same timestamp.
 
 ## Demo-data disposition
 
@@ -71,7 +73,7 @@ Tests use temporary migrated SQLite databases, deterministic OpenAI fakes, the r
 | Book scan and confirmation | PASS automated | Bounded multi-book extraction, one batch review, edition proposals, idempotent human confirmation, and retry behavior |
 | Scan activity and media | PASS automated and live | Durable parent image, zoomable history, child outcomes, and backup/restore coverage; public only while explicit hackathon mode is enabled |
 | Assorted Things | PASS automated | Human-only box-scoped capture and review; no OpenAI inference and no Central projection |
-| Metadata and covers | PASS automated | Every detected candidate receives a bounded concurrency-limited lookup; transient retry, explicit candidate retry, existing-book recovery, human edition selection, reindexing, provenance, and graceful no-match behavior |
+| Metadata and covers | PASS automated and live schema | Every detected candidate receives a bounded concurrency-limited lookup; browser and MCP confirmation require reviewed edition handling, persist ISBN/cover/provenance, reindex, and reject silent metadata loss |
 | Vector semantic search | PASS application plumbing; MULTILINGUAL human check pending | Spanish, Simplified Chinese, Italian, and French query paths are tested against sqlite-vec with a deterministic embedder; live OpenAI cross-language relevance still needs walkthrough evidence |
 | Browser UI | PASS automated and deployed; HUMAN pending | Responsive application, box/book detail modals, themes, map/card controls, scanner input state, public-demo labeling, and delete regressions |
 | MCP application boundary | PASS automated and live smoke | 10 tools, widget resource, strict declared schemas, canonical application services, and a live no-auth ChatGPT-compatible handshake under the explicit demo flag |
