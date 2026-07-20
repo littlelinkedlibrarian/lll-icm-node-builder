@@ -117,4 +117,19 @@ describe("branded browser application", () => {
     expect((await app.inject({ method: "POST", url: "/mcp", payload: {} })).statusCode).toBe(401);
     await app.close();
   });
+
+  it("opens MCP only when its separate public demo flag is explicit", async () => {
+    const app = buildApp({ config: {
+      host: "127.0.0.1", port: 3000, databasePath: ":memory:", nodeName: "Public MCP Box",
+      publicBaseUrl: new URL("https://judge.example"), operatorToken: "secret", publicDemoMcp: true,
+      visionModel: "gpt-5.6-sol", embeddingModel: "text-embedding-3-small", discoveryEnabled: false
+    }, db, store: new SqliteStore(db) });
+    const initialized = await app.inject({ method: "POST", url: "/mcp", headers: { accept: "application/json, text/event-stream" }, payload: {
+      jsonrpc: "2.0", id: 1, method: "initialize",
+      params: { protocolVersion: "2025-06-18", capabilities: {}, clientInfo: { name: "chatgpt-demo-test", version: "1.0.0" } }
+    } });
+    expect(initialized.statusCode).toBe(200);
+    expect(initialized.body).toContain('"serverInfo":{"name":"little-green-library"');
+    await app.close();
+  });
 });

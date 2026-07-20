@@ -4,7 +4,7 @@ Public URL: <https://happybox.littlelinkedlibrarian.com>
 
 ## Hackathon public demo
 
-When `PUBLIC_DEMO_OPERATOR=true`, open the public URL directly. The header says **Public demo mode**, and browser scanning, review, history, and CRUD require no token. MCP remains authenticated.
+When `PUBLIC_DEMO_OPERATOR=true`, open the public URL directly. The header says **Public demo mode**, and browser scanning, review, history, and CRUD require no token. When `PUBLIC_DEMO_MCP=true` is also explicitly enabled, ChatGPT developer mode can connect to the public `/mcp` URL without OAuth; every advertised MCP tool is then public until the flag is disabled.
 
 For the normal protected mode, connect as the local operator:
 
@@ -46,7 +46,7 @@ After the Central operator has approved `lll-happy-box` and the node log shows `
 ## Boundaries worth checking
 
 - In normal mode, `/api/manage/*` and protected images return `401` without operator access. In explicit public demo mode, browser management routes are open and the UI clearly labels that state.
-- `/mcp` remains protected by the operator credential in both modes.
+- `/mcp` remains protected unless the separate `PUBLIC_DEMO_MCP=true` flag is enabled for the time-bounded ChatGPT demonstration.
 - Public `/api/boxes` includes Happy Box, but private Assorted Things data is absent from the Central-compatible reads.
 - If OpenAI extraction fails, the application remains usable and the failed activity keeps its uploaded image in protected history.
 - The beta Central application remains at <https://beta.littlelinkedlibrarian.com>.
