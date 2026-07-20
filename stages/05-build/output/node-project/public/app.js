@@ -75,6 +75,7 @@ function boxCard(box) {
   const article = document.createElement("article"); article.className = "box-card";
   const primary = document.createElement("button"); primary.type = "button"; primary.className = "box-card-primary"; primary.dataset.openBox = box.id; primary.setAttribute("aria-label", "Open details for " + box.name);
   const art = document.createElement("div"); art.className = "box-card-art";
+  if (box.name === "Happy Box") { const image = document.createElement("img"); image.src = "/demo/happy-box-outdoor.jpg"; image.alt = "Happy Box neighborhood library"; image.loading = "lazy"; art.append(image); art.classList.add("has-photo"); }
   const body = document.createElement("div"); body.className = "box-card-body";
   const eyebrow = document.createElement("p"); eyebrow.className = "eyebrow"; eyebrow.textContent = box.visibility === "private" ? "Private box" : "Public box";
   const heading = document.createElement("h3"); heading.textContent = box.name;
@@ -367,7 +368,7 @@ $("#scan-this-box").addEventListener("click", () => requireOperator(() => {
   $("#box-inventory-dialog").close(); $("#scan-box").value = state.activeBoxId || ""; location.hash = "scanner";
 }));
 
-$("#seed-button").addEventListener("click", () => requireOperator(async () => { try { await api("/api/manage/demo/seed", { method: "POST", body: {} }); await loadManaged(); toast("Demo library ready"); } catch (error) { toast(error.message); } }));
+$("#seed-button").addEventListener("click", () => requireOperator(async () => { try { await api("/api/manage/demo/seed", { method: "POST", body: {} }); await loadManaged(); toast("Real Happy Box ready — scan a sample photo to create its books"); } catch (error) { toast(error.message); } }));
 $$('[data-view]').forEach(button => button.addEventListener("click", () => { $$('[data-view]').forEach(item => item.classList.toggle("active", item === button)); $("#box-grid").classList.toggle("hidden", button.dataset.view !== "cards"); $("#box-map").classList.toggle("hidden", button.dataset.view !== "map"); }));
 
 $("#search-form").addEventListener("submit", async event => { event.preventDefault(); const query = new URLSearchParams({ q: $("#search-query").value }); if ($("#search-box").value) query.set("boxId", $("#search-box").value); try { const result = await api(`/api/search?${query}`, { manage: false }); renderBooks(result.data, result.mode); } catch (error) { toast(error.message); } });

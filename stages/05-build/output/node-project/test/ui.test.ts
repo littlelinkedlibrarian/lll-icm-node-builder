@@ -55,6 +55,8 @@ describe("branded browser application", () => {
     expect(home.body).toContain("data-scan-kind=\"assorted\"");
     expect(home.body).toContain("capture=\"environment\"");
     expect(home.body).toContain("Take a shelf photo");
+    expect(home.body).toContain("Prepare real demo");
+    expect(home.body).toContain("/demo/shelf-mixed-catalog.jpg");
     const browserStyles = (await app.inject({ method: "GET", url: "/assets/styles.css" })).body;
     expect(browserStyles).toContain(".view-switch button.active");
     expect(browserStyles).toContain(".box-card-primary");
@@ -64,19 +66,17 @@ describe("branded browser application", () => {
     expect((await app.inject({ method: "GET", url: "/api/meta" })).json()).toMatchObject({ name: "Judge Box", compatibilityVersion: "0.1.0" });
     expect((await app.inject({ method: "POST", url: "/api/manage/demo/seed", payload: {} })).statusCode).toBe(401);
     const request = { method: "POST" as const, url: "/api/manage/demo/seed", headers: { authorization: "Bearer secret" }, payload: {} };
-    expect((await app.inject(request)).json()).toEqual({ boxes: 2, books: 3 });
-    const legacySea = store.listBooks(1, 50).data.find(book => book.title === "The Sea Around Us")!;
-    store.update(legacySea.id, { isbn: null, coverUrl: null, publicationYear: null, metadataProvenance: null });
-    expect((await app.inject(request)).json()).toEqual({ boxes: 2, books: 3 });
+    expect((await app.inject(request)).json()).toEqual({ boxes: 1, books: 0 });
+    expect((await app.inject(request)).json()).toEqual({ boxes: 1, books: 0 });
     const managedBoxes = (await app.inject({ method: "GET", url: "/api/manage/boxes", headers: { authorization: "Bearer secret" } })).json();
-    expect(managedBoxes.data).toEqual(expect.arrayContaining([expect.objectContaining({ name: "Happy Box", location: "66 Colon Ave, St. Augustine, FL 32084", latitude: 29.927154, longitude: -81.325848 })]));
-    const managedBooks = (await app.inject({ method: "GET", url: "/api/manage/books", headers: { authorization: "Bearer secret" } })).json();
-    expect(managedBooks).toMatchObject({ pagination: { total: 3 } });
-    expect(managedBooks.data).toEqual(expect.arrayContaining([
-      expect.objectContaining({ title: "The Sea Around Us", isbn: "9780195069976", coverUrl: expect.stringContaining("covers.openlibrary.org"), publicationYear: 1991, language: "en", condition: "good", metadataProvenance: expect.objectContaining({ provider: "openlibrary" }) }),
-      expect.objectContaining({ title: "Braiding Sweetgrass", isbn: "9781571313560", coverUrl: expect.stringContaining("covers.openlibrary.org"), publicationYear: 2013 }),
-      expect.objectContaining({ title: "The Little Prince", isbn: "9780156012195", coverUrl: expect.stringContaining("covers.openlibrary.org"), publicationYear: 2000 })
-    ]));
+    expect(managedBoxes.data).toEqual([expect.objectContaining({ name: "Happy Box", location: "66 Colon Ave, St. Augustine, FL 32084", latitude: 29.927154, longitude: -81.325848 })]);
+    expect(store.listBooks(1, 50).total).toBe(0);
+    for (const name of ["happy-box-outdoor.jpg", "shelf-mixed-catalog.jpg", "shelf-math-science.jpg", "shelf-thinking.jpg"]) {
+      const photo = await app.inject({ method: "GET", url: "/demo/" + name });
+      expect(photo.statusCode).toBe(200);
+      expect(photo.headers["content-type"]).toContain("image/jpeg");
+      expect(photo.rawPayload.byteLength).toBeGreaterThan(1_000);
+    }
     await app.close();
   });
 

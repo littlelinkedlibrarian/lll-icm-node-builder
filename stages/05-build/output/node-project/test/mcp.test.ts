@@ -2,8 +2,10 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import type { DatabaseSync } from "node:sqlite";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { openDatabase } from "../src/db/database.js";
 import { SqliteStore } from "../src/db/store.js";
+import { buildApp } from "../src/http/app.js";
 import { createMcpServer } from "../src/mcp/server.js";
 
 describe("MCP Apps adapter", () => {
@@ -35,6 +37,29 @@ describe("MCP Apps adapter", () => {
     expect(content.mimeType).toBe("text/html;profile=mcp-app");
     expect("text" in content ? content.text : "").toContain("ui/notifications/tool-result");
     await client.close(); await server.close();
+  });
+
+  it("serves declared box output over the deployed Streamable HTTP boundary", async () => {
+    const store = new SqliteStore(db);
+    const box = store.create({ name: "Strict Box", description: "Not part of the MCP output", location: "Park", latitude: 0, longitude: 0, visibility: "public" });
+    const app = buildApp({ config: {
+      host: "127.0.0.1", port: 0, databasePath: ":memory:", nodeName: "Strict MCP",
+      publicBaseUrl: new URL("https://box.example"), operatorToken: "secret",
+      visionModel: "gpt-5.6-sol", embeddingModel: "text-embedding-3-small", discoveryEnabled: false
+    }, db, store });
+    const origin = await app.listen({ host: "127.0.0.1", port: 0 });
+    const client = new Client({ name: "http-test-client", version: "1.0.0" }, { capabilities: {} });
+    const transport = new StreamableHTTPClientTransport(new URL("/mcp", origin), { requestInit: { headers: { authorization: "Bearer secret" } } });
+    try {
+      await client.connect(transport as unknown as Parameters<Client["connect"]>[0]);
+      const listed = await client.callTool({ name: "list_my_boxes", arguments: {} });
+      const boxes = (listed.structuredContent as { boxes: Array<Record<string, unknown>> }).boxes;
+      expect(boxes).toEqual([{ id: box.id, name: "Strict Box", location: "Park", latitude: 0, longitude: 0, bookCount: 0 }]);
+      expect(Object.keys(boxes[0]!).sort()).toEqual(["bookCount", "id", "latitude", "location", "longitude", "name"]);
+    } finally {
+      await client.close().catch(() => undefined);
+      await app.close();
+    }
   });
 
   it("reads, prepares, and idempotently confirms through canonical application data", async () => {

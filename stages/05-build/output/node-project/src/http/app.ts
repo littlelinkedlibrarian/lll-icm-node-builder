@@ -60,9 +60,19 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
     css: readFileSync(new URL("../../public/styles.css", import.meta.url), "utf8"),
     js: readFileSync(new URL("../../public/app.js", import.meta.url), "utf8")
   };
+  const demoPhotos = new Map([
+    ["happy-box-outdoor.jpg", readFileSync(new URL("../../public/demo/happy-box-outdoor.jpg", import.meta.url))],
+    ["shelf-mixed-catalog.jpg", readFileSync(new URL("../../public/demo/shelf-mixed-catalog.jpg", import.meta.url))],
+    ["shelf-math-science.jpg", readFileSync(new URL("../../public/demo/shelf-math-science.jpg", import.meta.url))],
+    ["shelf-thinking.jpg", readFileSync(new URL("../../public/demo/shelf-thinking.jpg", import.meta.url))]
+  ]);
   app.get("/", async (_request, reply) => reply.type("text/html; charset=utf-8").send(web.html));
   app.get("/assets/styles.css", async (_request, reply) => reply.type("text/css; charset=utf-8").send(web.css));
   app.get("/assets/app.js", async (_request, reply) => reply.type("text/javascript; charset=utf-8").send(web.js));
+  app.get("/demo/:name", async (request, reply) => {
+    const photo = demoPhotos.get((request.params as { name: string }).name);
+    return photo ? reply.header("cache-control", "public, max-age=3600").type("image/jpeg").send(photo) : reply.code(404).send({ error: "not_found", message: "Demo photo not found" });
+  });
   app.get("/api/meta", async () => ({ name: input.config.nodeName, publicBaseUrl: input.config.publicBaseUrl.href, compatibilityVersion: "0.1.0" }));
   app.options("/mcp", async (_request, reply) => reply.headers({
     "access-control-allow-origin": "*", "access-control-allow-methods": "GET, POST, DELETE, OPTIONS",
@@ -176,21 +186,16 @@ export function buildApp(input: { config: AppConfig; db: DatabaseSync; store: Sq
   });
 
   app.post("/api/manage/demo/seed", { preHandler: auth }, async () => {
-    const fixtures = [
-      { name: "Garden Gate Library", description: "Stories beside the community herb garden.", location: "Garden north entrance", latitude: 39.7392, longitude: -104.9903 },
-      { name: "Happy Box", description: "Books, useful surprises, and neighbor-made discoveries in St. Augustine.", location: "66 Colon Ave, St. Augustine, FL 32084", latitude: 29.927154, longitude: -81.325848 }
-    ];
-    const boxes = fixtures.map(fixture => input.store.listBoxes(1, 50).data.find(box => box.name === fixture.name) ?? input.store.create({ ...fixture, visibility: "public" as const }));
-    const books = [
-      { boxId: boxes[0]!.id, title: "The Sea Around Us", author: "Rachel Carson", isbn: "9780195069976", genre: "Nature and science", description: "Rachel Carson follows the oceans from their ancient origins through tides, currents, deep-sea life, and humanity’s enduring relationship with the sea.", language: "en", condition: "good", visibility: "public" as const, aiProvenance: null, coverUrl: "https://covers.openlibrary.org/b/isbn/9780195069976-L.jpg", publicationYear: 1991, metadataProvenance: { provider: "openlibrary", sourceUrl: "https://openlibrary.org/works/OL1884867W", seededForDemo: true } },
-      { boxId: boxes[0]!.id, title: "Braiding Sweetgrass", author: "Robin Wall Kimmerer", isbn: "9781571313560", genre: "Nature and Indigenous knowledge", description: "A botanist and member of the Citizen Potawatomi Nation brings scientific knowledge together with Indigenous teachings about plants, reciprocity, gratitude, and care for the living world.", language: "en", condition: "like_new", visibility: "public" as const, aiProvenance: null, coverUrl: "https://covers.openlibrary.org/b/isbn/9781571313560-L.jpg", publicationYear: 2013, metadataProvenance: { provider: "openlibrary", sourceUrl: "https://openlibrary.org/works/OL16819897W", seededForDemo: true } },
-      { boxId: boxes[1]!.id, title: "The Little Prince", author: "Antoine de Saint-Exupéry", isbn: "9780156012195", genre: "Fiction and philosophy", description: "A young traveler moves between tiny planets and encounters friendship, loneliness, responsibility, and the truths that are easiest to see with the heart.", language: "en", condition: "fair", visibility: "public" as const, aiProvenance: null, coverUrl: "https://covers.openlibrary.org/b/isbn/9780156012195-L.jpg", publicationYear: 2000, metadataProvenance: { provider: "openlibrary", sourceUrl: "https://openlibrary.org/works/OL10263W", seededForDemo: true } }
-    ];
-    for (const fixture of books) {
-      const existing = input.store.listBooks(1, 100).data.find(book => book.title === fixture.title && book.boxId === fixture.boxId);
-      const book = existing ? input.store.update(existing.id, fixture) as Book : input.store.create(fixture);
-      try { await search.index(book); } catch { /* demo remains available through keyword search */ }
-    }
+    const fixture = {
+      name: "Happy Box",
+      description: "A real neighborhood library box and the starting point for photo-backed cataloging in St. Augustine.",
+      location: "66 Colon Ave, St. Augustine, FL 32084",
+      latitude: 29.927154,
+      longitude: -81.325848,
+      visibility: "public" as const
+    };
+    const existing = input.store.listBoxes(1, 50).data.find(box => box.name === fixture.name);
+    if (existing) input.store.update(existing.id, fixture); else input.store.create(fixture);
     return { boxes: input.store.listBoxes(1, 50).total, books: input.store.listBooks(1, 50).total };
   });
 

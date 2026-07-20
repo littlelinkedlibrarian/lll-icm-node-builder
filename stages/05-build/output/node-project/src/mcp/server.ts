@@ -62,7 +62,14 @@ export function createMcpServer(deps: McpDependencies): McpServer {
     title: "List my library boxes", description: "Use this when the user wants to see the boxes owned by this node before choosing a destination.",
     inputSchema: {}, outputSchema: { boxes: z.array(z.object({ id: z.string(), name: z.string(), location: z.string().nullable(), latitude: z.number().nullable(), longitude: z.number().nullable(), bookCount: z.number() })) }, annotations: annotations.read
   }, async () => {
-    const boxes = deps.store.listBoxes(1, 50).data.map(box => ({ ...box, bookCount: deps.store.listBooks(1, 1, box.id).total }));
+    const boxes = deps.store.listBoxes(1, 50).data.map(box => ({
+      id: box.id,
+      name: box.name,
+      location: box.location,
+      latitude: box.latitude,
+      longitude: box.longitude,
+      bookCount: deps.store.listBooks(1, 1, box.id).total
+    }));
     return { structuredContent: { boxes }, content: [{ type: "text", text: `Found ${boxes.length} library boxes.` }] };
   });
 

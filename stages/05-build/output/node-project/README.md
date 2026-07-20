@@ -7,7 +7,8 @@ The node owns its boxes, books, scan candidates, audit trail, and vectors. Centr
 ## What works
 
 - A responsive branded library UI with local map, catalog, destination-first Books or Assorted Things scanner, operator controls, and a Garden/Terminal/Cosmic theme switcher.
-- A seeded Happy Box at `66 Colon Ave, St. Augustine, FL 32084` for the hackathon walkthrough. Re-running **Load demo** idempotently upgrades the three reference books with ISBN, cover, description, language, condition, publication year, and Open Library provenance.
+- A real Happy Box at `66 Colon Ave, St. Augustine, FL 32084`, represented by an operator-provided box photo. **Prepare real demo** creates or refreshes that box but does not manufacture catalog records.
+- Three metadata-stripped, operator-provided shelf photos are bundled as sample inputs. GPT-5.6 proposes the visible books during the walkthrough; only human confirmation creates catalog records.
 - One cover or shelf-spine photo produces 1 through 15 book candidates in one review modal; edit only incomplete or incorrect results, then publish the selected books together.
 - Box-scoped Assorted Things photos use durable human-only capture and confirm/reject without object recognition or book creation. Confirmed puzzles, note cards, art, and trinkets are zoomable inside their box.
 - Dedicated box and book primary controls open associated detail modals; operator edit and delete controls are isolated so one click performs one action.
@@ -50,7 +51,7 @@ npm start
 
 The default origin is `http://localhost:3000`. SQLite data is created at `./data/lll-node.sqlite`; retained book-scan media is stored under `./data/media`.
 
-Open that origin in a browser, choose **Operator access**, enter the configured token, then choose **Load demo** for a judge-ready walkthrough. The seed is idempotent and includes Happy Box at the St. Augustine address.
+Open that origin in a browser, choose **Operator access**, enter the configured token, then choose **Prepare real demo**. The operation is idempotent and creates or refreshes Happy Box at the St. Augustine address without adding books. Under **Use a real shelf photo**, download a bundled sample, upload it to the scanner, review the GPT-5.6 candidates, and explicitly confirm the books you want to publish.
 
 Without `OPENAI_API_KEY`, manual CRUD, public reads, health, keyword search, and Assorted Things capture/review still work. Book candidate analysis returns an explicit unavailable response; Assorted Things behavior is unchanged because it never invokes OpenAI.
 

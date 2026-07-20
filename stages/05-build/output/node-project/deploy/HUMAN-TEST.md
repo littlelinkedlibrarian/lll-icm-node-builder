@@ -16,10 +16,10 @@ Open the public URL, choose **Operator access**, paste the token, and connect.
 
 1. Switch between **Garden**, **Terminal**, and **Cosmic**. Reload once and confirm the selection persists.
 2. Open **Library boxes** and confirm **Happy Box** shows `66 Colon Ave, St. Augustine, FL 32084`.
-3. Choose **Load demo** and confirm the three books across two boxes show covers. Open each Book details modal and verify ISBN, description, language, condition, publication year, and catalog source; running the seed again must not duplicate them.
+3. Choose **Prepare real demo** and confirm Happy Box uses the real outdoor box photo and the catalog is not populated with fictional seed records. Run it again and confirm it does not duplicate the box or alter existing books.
 4. Create a temporary box, edit its name/location, then delete it while empty.
 5. Select Happy Box anywhere on its card, then select a book inside its inventory and verify the cover, description, ISBN, language, condition, publication year, and box appear in Book details. Add a disposable manual book, open its detail modal, edit or move it, search for it, then delete it from the detail modal. Confirm the modal closes, the book disappears from both the catalog and its box, and no empty popup opens.
-6. In **Scanner**, select **Books**, Happy Box, and a non-sensitive photo containing at least three visible book spines. Confirm a clearly bordered thumbnail, filename, type, and size appear before submission. On mobile, choose the camera when the browser offers it.
+6. In **Scanner**, expand **Use a real shelf photo**, download one supplied shelf image, select **Books** and Happy Box, then upload the image. Confirm a clearly bordered thumbnail, filename, type, and size appear before submission. On mobile, also verify the camera path when the browser offers it.
 7. Review every result in the single batch modal. Edit only incorrect extraction fields; choose an offered edition for one result, leave another as **no edition**, confirm at least two, and reject one. No edition should be selected automatically.
 8. Open **Activity History**, reopen that parent scan, and verify the entire uncropped original image, zoom controls, timeline, and all confirmed/rejected child outcomes.
 9. Return to the catalog and verify confirmed books appear. A selected edition should show its cover when Open Library supplied one; unmatched books should use the spine placeholder.

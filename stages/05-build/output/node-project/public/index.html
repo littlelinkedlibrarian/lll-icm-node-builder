@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#173f35">
     <title>Little Green Library</title>
-    <link rel="stylesheet" href="/assets/styles.css?v=phase-01.5f.1">
+    <link rel="stylesheet" href="/assets/styles.css?v=phase-01.5f.2">
   </head>
   <body>
     <header class="site-header">
@@ -42,7 +42,7 @@
       </section>
 
       <section class="section" id="boxes">
-        <div class="section-heading"><div><p class="eyebrow">Your neighborhood shelf</p><h2>Library boxes</h2></div><div class="section-actions"><button class="button button-quiet" id="seed-button" type="button">Load demo</button><button class="button button-primary requires-operator" data-dialog="box-dialog" type="button">Add a box</button></div></div>
+        <div class="section-heading"><div><p class="eyebrow">Your neighborhood shelf</p><h2>Library boxes</h2></div><div class="section-actions"><button class="button button-quiet" id="seed-button" type="button">Prepare real demo</button><button class="button button-primary requires-operator" data-dialog="box-dialog" type="button">Add a box</button></div></div>
         <div class="view-switch" role="group" aria-label="Box view"><button class="active" data-view="cards" type="button">Cards</button><button data-view="map" type="button">Map</button></div>
         <div class="card-grid" id="box-grid" aria-live="polite"></div>
         <div class="map-panel hidden" id="box-map"><div class="map-grid" id="map-pins"></div><p>Coordinates are plotted locally. No map provider receives your box locations.</p></div>
@@ -56,7 +56,7 @@
       </section>
 
       <section class="section scanner" id="scanner">
-        <div class="scanner-copy"><p class="eyebrow">GPT-5.6 assisted, human decided</p><h2>Catalog what is inside a box.</h2><p>Choose a box, then scan books or the assorted puzzles, note cards, art, and trinkets that neighbors share. Book AI proposes candidates; Assorted Things stays human-described. Nothing becomes public before review.</p><ol><li>Select the destination box</li><li>Choose Books or Assorted things</li><li>Photograph, review, and confirm</li></ol></div>
+        <div class="scanner-copy"><p class="eyebrow">GPT-5.6 assisted, human decided</p><h2>Catalog what is inside a box.</h2><p>Choose a box, then scan books or the assorted puzzles, note cards, art, and trinkets that neighbors share. Book AI proposes candidates; Assorted Things stays human-described. Nothing becomes public before review.</p><ol><li>Select the destination box</li><li>Choose Books or Assorted things</li><li>Photograph, review, and confirm</li></ol><details class="demo-inputs"><summary>Use a real shelf photo</summary><p>Download one of these privacy-scrubbed, operator-provided photos, then choose it below. The catalog starts empty so GPT-5.6 and human review create the records you see.</p><div class="demo-photo-grid"><a href="/demo/shelf-mixed-catalog.jpg" download><img src="/demo/shelf-mixed-catalog.jpg" alt="Mixed shelf of real books"><span>Mixed shelf</span></a><a href="/demo/shelf-math-science.jpg" download><img src="/demo/shelf-math-science.jpg" alt="Real mathematics and science book spines"><span>Math and science</span></a><a href="/demo/shelf-thinking.jpg" download><img src="/demo/shelf-thinking.jpg" alt="Real philosophy and thinking book spines"><span>Thinking shelf</span></a></div></details></div>
         <div class="scanner-card">
           <label>Destination box<select id="scan-box" required><option value="">Choose a box</option></select></label>
           <div class="scan-kind" role="group" aria-label="What are you scanning?"><button class="active" data-scan-kind="books" type="button"><strong>Books</strong><span>One cover or several shelf spines</span></button><button data-scan-kind="assorted" type="button"><strong>Assorted things</strong><span>Puzzles, note cards, art, and trinkets</span></button></div>
@@ -106,6 +106,6 @@
 
     <template id="empty-template"><div class="empty-state"><span>⌂</span><h3>Nothing here yet</h3><p>Start with a box, then help a book find its next reader.</p></div></template>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script type="module" src="/assets/app.js?v=phase-01.5f.1"></script>
+    <script type="module" src="/assets/app.js?v=phase-01.5f.2"></script>
   </body>
 </html>
