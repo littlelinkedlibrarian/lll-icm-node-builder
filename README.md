@@ -144,6 +144,3 @@ The LLL domain references are original adaptations informed by the Little Linked
 
 MIT. See `LICENSE`.
 
-## Phase 1.5F reference experience
-
-The checked-in reference run includes the real Happy Box at `66 Colon Ave, St. Augustine, FL 32084`, an operator-provided box photo, metadata-stripped shelf photos as real scanner inputs, a destination-first scanner for Books or Assorted Things, and Garden, Terminal, and Cosmic themes. The demo starts without manufactured book records: GPT-5.6 proposes books visible in a supplied photo and a human decides what becomes canonical. Assorted Things uses human-only photo capture and description; confirmed puzzles, note cards, art, and trinkets appear as zoomable inventory inside their box; pending and rejected captures remain private and all Assorted Things stay outside the Central compatibility profile. Phase 1.5E adds a durable parent scan activity, protected zoomable source-image history, explicit edition-aware ISBN proposals, cover metadata, and child result outcomes. Open Library receives extracted bibliographic text only; the local operator remains the authority for publication.
