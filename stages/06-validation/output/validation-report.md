@@ -1,8 +1,8 @@
 # Phase 1.5F Validation Report
 
 Status: AUTOMATED PASS; HUMAN RELEASE REVIEW REQUIRED
-Date: 2026-07-20
-Target revision: heartbeat-enabled Phase 1.5F release candidate
+Date: 2026-07-21
+Target revision: OpenAI Build Week submission revision
 Local target: `stages/05-build/output/node-project`
 Deployed target: `https://happybox.littlelinkedlibrarian.com`
 
@@ -10,7 +10,7 @@ Deployed target: `https://happybox.littlelinkedlibrarian.com`
 
 The node builds, passes its automated suite, runs with persistent SQLite and sqlite-vec storage, and serves the real Happy Box sample inputs. Its explicitly configured hackathon mode opens browser CRUD, scanning, review, activity history, and the ChatGPT-facing Streamable HTTP MCP endpoint without exposing the real operator token. Normal MCP deployments remain authenticated; the public MCP flag is a time-bounded judging exception. The previous MCP schema failure is fixed and covered by real transport tests.
 
-The project is not yet marked hackathon-release complete. OAuth for ChatGPT and the browser/video walkthrough require explicit human work described below. The live Central registry, heartbeat, proximity, aggregation, detail, and inventory reads now pass; the human CRUD-refresh loop remains in the walkthrough.
+The project is not yet marked hackathon-release complete because the browser/video walkthrough and submission packaging require explicit human work described below. The public MCP demo has already connected successfully from ChatGPT developer mode without OAuth, as intended for this explicit time-bounded judging configuration. OAuth remains post-hackathon production hardening. The live Central registry, heartbeat, proximity, aggregation, detail, and inventory reads now pass; the human CRUD-refresh loop remains in the walkthrough.
 
 ## Reproducible automated evidence
 
@@ -35,6 +35,15 @@ PASS
 ```
 
 Tests use temporary migrated SQLite databases, deterministic OpenAI fakes, the real sqlite-vec extension, Fastify request injection, and a real Streamable HTTP MCP client/server boundary. The strict MCP regression asserts that `list_my_boxes` returns exactly its six declared fields and no datastore-only properties.
+
+## Repository secret audit
+
+- The current tree and all 46 pre-submission commits reachable from every local reference were scanned on 2026-07-21 before tagging.
+- No private-key headers or high-confidence OpenAI, GitHub, AWS, or Slack credential signatures were found.
+- No committed runtime `.env`, `.happy_tokens`, database, SQLite, certificate, private-key, or secret/token file was found. The only tracked environment files are the Stage 04 and Stage 05 `.env.example` templates.
+- Every historical credential assignment in those templates is empty or an explicit replacement placeholder. Other retained values are non-secret configuration such as local paths, model names, public origins, feature flags, and a node identifier.
+- Root and generated-project ignore rules exclude runtime environment files, key material, databases, media/data directories, logs, dependencies, and build output.
+- This was a signature, filename, and sensitive-assignment audit over reachable Git history; no dedicated entropy scanner was installed in the build environment. No evidence of a committed secret was found.
 
 ## Deployment evidence
 
@@ -77,7 +86,7 @@ Tests use temporary migrated SQLite databases, deterministic OpenAI fakes, the r
 | Vector semantic search | PASS application plumbing; MULTILINGUAL human check pending | Spanish, Simplified Chinese, Italian, and French query paths are tested against sqlite-vec with a deterministic embedder; live OpenAI cross-language relevance still needs walkthrough evidence |
 | Browser UI | PASS automated and deployed; HUMAN pending | Responsive application, box/book detail modals, themes, map/card controls, scanner input state, public-demo labeling, and delete regressions |
 | MCP application boundary | PASS automated and live smoke | 10 tools, widget resource, strict declared schemas, canonical application services, and a live no-auth ChatGPT-compatible handshake under the explicit demo flag |
-| OAuth for ChatGPT | PENDING | Static bearer authentication works for local/operator testing; OAuth 2.1 discovery, authorization-code/PKCE flow, JWT validation, scopes, and ChatGPT connection are not configured |
+| ChatGPT developer app | PASS human and live | The explicit public MCP demo connected from ChatGPT without OAuth and exposes all 10 tools; protected normal deployments retain bearer authentication, while OAuth 2.1 remains post-hackathon production hardening |
 | Central compatibility | PASS automated and live reads; HUMAN CRUD-refresh pending | Registry promotion, fresh heartbeat, health/privacy/proximity eligibility, aggregate lists, box detail, inventory, source label, and branded link passed live; the browser card/modal and one visible create/delete refresh remain in the human walkthrough |
 | Broad audit trail | PARTIAL | Scan decisions are recorded; complete create/update/delete actor audit coverage remains hardening work |
 
@@ -89,11 +98,11 @@ Tests use temporary migrated SQLite databases, deterministic OpenAI fakes, the r
 4. Run one real GPT-5.6 multi-spine scan, correct candidates, confirm multiple books, and verify metadata, covers, activity history, and semantic search.
 5. Test mobile camera capture and the complete Assorted Things human-review path.
 6. Register the public `/mcp` endpoint as a ChatGPT developer-mode app, list boxes, search the catalog, and run the photo-review flow; disable `PUBLIC_DEMO_MCP` immediately after judging.
-7. Choose and configure an OAuth 2.1 provider before connecting the MCP app to ChatGPT.
+7. After judging, disable `PUBLIC_DEMO_MCP` and `PUBLIC_DEMO_OPERATOR`; require the normal protected mode, and add OAuth 2.1 before any ongoing public multi-user MCP deployment.
 8. Run the **Central companion loop** in `deploy/HUMAN-TEST.md` and decide whether to include it in the recorded submission demo or label it as the compatible companion.
 
 ## Release blockers versus follow-up
 
-OAuth is a blocker only if the submitted experience promises direct ChatGPT app access. The Central machine loop is proven; its human CRUD-refresh walkthrough is a blocker only if the video promises that exact live journey. Neither blocks a truthful demo of the standalone AI-built node, its browser UI, GPT-5.6 extraction, local vector search, activity history, or Inspector-tested MCP interface.
+OAuth is not a blocker for the submitted experience: the direct ChatGPT app connection has been human-verified under the explicitly configured, backup-protected public MCP demo. It becomes a requirement before converting that temporary judging exception into an ongoing public multi-user deployment. The Central machine loop is proven; its human CRUD-refresh walkthrough is a blocker only if the video promises that exact live journey. Neither blocks a truthful demo of the standalone AI-built node, its browser UI, GPT-5.6 extraction, local vector search, activity history, or ChatGPT-tested MCP interface.
 
 Do not mark Stage 07 complete until the human walkthrough is recorded and every capability claimed in the submission has matching evidence.
