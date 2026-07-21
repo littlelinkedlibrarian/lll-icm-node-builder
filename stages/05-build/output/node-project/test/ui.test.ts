@@ -36,6 +36,7 @@ describe("branded browser application", () => {
     expect(home.body).toContain("Guests can browse public boxes, book details, search, maps, and confirmed Assorted Things");
     expect(home.body).toContain("Private scan evidence");
     expect(home.body).toContain("Add selected books");
+    expect(home.body).toContain("Use displayed matches");
     expect((await app.inject({ method: "GET", url: "/assets/app.js" })).body).toContain("metadata-selection");
     expect((await app.inject({ method: "GET", url: "/assets/app.js" })).body).toContain("setActivityZoom");
     const browserScript = (await app.inject({ method: "GET", url: "/assets/app.js" })).body;
@@ -45,6 +46,8 @@ describe("branded browser application", () => {
     expect(browserScript).toContain("Photo saved safely");
     expect(browserScript).toContain("metadata-options");
     expect(browserScript).toContain("Retry metadata & covers");
+    expect(browserScript).toContain("Choose an edition, explicitly keep reviewed fields, or use displayed matches");
+    expect(browserScript).toContain("candidate._metadataProposalId || candidate.metadataProposals[0].id");
     expect(home.body).toContain("Find metadata &amp; cover");
     expect(browserScript).toContain(`closeDialogIfOpen("book-details-dialog")`);
     expect(browserScript).toContain(`const target = event.target.closest("button")`);

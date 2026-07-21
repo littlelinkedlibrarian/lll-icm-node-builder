@@ -431,22 +431,28 @@ function renderCandidateBatch() {
     const complete = completeCandidate(candidate); if (candidate._selected === undefined) candidate._selected = complete;
     const proposals = candidate.metadataProposals || [], chosen = proposals.find(item => item.selected);
     if (candidate._metadataProposalId === undefined) candidate._metadataProposalId = chosen?.id || null;
+    if (candidate._metadataDecisionMade === undefined) candidate._metadataDecisionMade = Boolean(chosen);
     const preview = proposals.find(item => item.id === candidate._metadataProposalId) || proposals[0];
-    const options = `<option value="">Keep reviewed fields; no edition</option>` + proposals.map(item => `<option value="${item.id}"${item.id === candidate._metadataProposalId ? " selected" : ""}>${escapeHtml([item.title, item.publisher, item.publishedDate, item.isbn13 || item.isbn10].filter(Boolean).join(" · "))}</option>`).join("");
-    const metadataControl = proposals.length ? `<label class="metadata-choice">Edition metadata<select data-metadata-candidate="${candidate.id}">${options}</select></label>` : `<button class="button button-quiet" data-refresh-metadata="${candidate.id}" type="button">Retry metadata &amp; covers</button>`;
+    const undecided = !candidate._metadataDecisionMade ? `<option value="__undecided" selected>Choose an edition or keep reviewed fields</option>` : "";
+    const options = undecided + `<option value=""${candidate._metadataDecisionMade && !candidate._metadataProposalId ? " selected" : ""}>Keep reviewed fields; no edition</option>` + proposals.map(item => `<option value="${item.id}"${candidate._metadataDecisionMade && item.id === candidate._metadataProposalId ? " selected" : ""}>${escapeHtml([item.title, item.publisher, item.publishedDate, item.isbn13 || item.isbn10].filter(Boolean).join(" · "))}</option>`).join("");
+    const metadataControl = proposals.length ? `<label class="metadata-choice">Edition metadata · ${candidate._metadataDecisionMade ? candidate._metadataProposalId ? "selected" : "none" : "preview only"}<select data-metadata-candidate="${candidate.id}">${options}</select></label>` : `<button class="button button-quiet" data-refresh-metadata="${candidate.id}" type="button">Retry metadata &amp; covers</button>`;
     const row = document.createElement("article"); row.className = "candidate-batch-row" + (complete ? "" : " needs-review");
     const cover = preview?.coverUrl ? `<img class="candidate-cover" src="${escapeHtml(preview.coverUrl)}" alt="Possible edition cover" loading="lazy">` : `<span class="candidate-placeholder">▤</span>`;
     row.innerHTML = `${cover}<label class="candidate-select"><input type="checkbox" data-batch-candidate="${candidate.id}"${candidate._selected ? " checked" : ""}><span><strong>${escapeHtml(candidate.fields.title || "Title needed")}</strong><small>${escapeHtml(candidate.fields.author || "Unreadable author")}${candidate.fields.genre ? " · " + escapeHtml(candidate.fields.genre) : ""}</small><small>${candidate.fields.isbn ? "Visible ISBN " + escapeHtml(candidate.fields.isbn) : proposals.length ? "Select an edition to add ISBN and cover" : "No metadata match loaded yet"}</small></span></label>${metadataControl}<span class="candidate-state">${complete ? "Ready" : "Needs edit"}</span><button class="button button-quiet" data-edit-candidate="${candidate.id}" type="button">Edit</button>`;
     list.append(row);
   });
-  list.querySelectorAll("[data-batch-candidate]").forEach(input => input.addEventListener("change", () => { const candidate = state.candidateQueue.find(item => item.id === input.dataset.batchCandidate); if (candidate) candidate._selected = input.checked; }));
-  list.querySelectorAll("[data-metadata-candidate]").forEach(select => select.addEventListener("change", () => { const candidate = state.candidateQueue.find(item => item.id === select.dataset.metadataCandidate); if (candidate) { candidate._metadataProposalId = select.value || null; renderCandidateBatch(); } }));
+  const selectedMatches = state.candidateQueue.filter(candidate => candidate._selected && candidate._metadataProposalId).length;
+  const availableMatches = state.candidateQueue.filter(candidate => candidate._selected && candidate.metadataProposals?.length).length;
+  $("#batch-metadata-summary").textContent = selectedMatches + " of " + availableMatches + " available edition match" + (availableMatches === 1 ? "" : "es") + " selected.";
+  $("#use-displayed-matches").disabled = availableMatches === 0;
+  list.querySelectorAll("[data-batch-candidate]").forEach(input => input.addEventListener("change", () => { const candidate = state.candidateQueue.find(item => item.id === input.dataset.batchCandidate); if (candidate) { candidate._selected = input.checked; renderCandidateBatch(); } }));
+  list.querySelectorAll("[data-metadata-candidate]").forEach(select => select.addEventListener("change", () => { const candidate = state.candidateQueue.find(item => item.id === select.dataset.metadataCandidate); if (candidate) { candidate._metadataDecisionMade = select.value !== "__undecided"; candidate._metadataProposalId = select.value && select.value !== "__undecided" ? select.value : null; renderCandidateBatch(); } }));
   list.querySelectorAll("[data-refresh-metadata]").forEach(button => button.addEventListener("click", async () => {
     button.disabled = true; button.textContent = "Looking up editions…";
     try {
       const updated = await api("/api/manage/candidates/" + button.dataset.refreshMetadata + "/metadata-refresh", { method: "POST", body: {} });
       const prior = state.candidateQueue.find(item => item.id === updated.id), index = state.candidateQueue.findIndex(item => item.id === updated.id);
-      updated._selected = prior?._selected; updated._metadataProposalId = null; if (index >= 0) state.candidateQueue[index] = updated;
+      updated._selected = prior?._selected; updated._metadataProposalId = null; updated._metadataDecisionMade = false; if (index >= 0) state.candidateQueue[index] = updated;
       renderCandidateBatch(); toast(updated.metadataProposals?.length ? "Metadata options ready — choose the matching edition" : "No matching editions found");
     } catch (error) { button.disabled = false; button.textContent = "Retry metadata & covers"; toast(error.message); }
   }));
@@ -462,12 +468,23 @@ function openCandidateEdit(id) {
 function fillCandidate(candidate) { const form = $("#candidate-form"); form.reset(); form.candidateId.value = candidate.id; form.boxId.value = candidate.boxId; Object.entries(candidate.fields).forEach(([key,value]) => { if (form[key]) form[key].value = value ?? ""; }); }
 function candidatePayload(form) { return { title: form.title.value.trim(), author: form.author.value.trim(), isbn: optional(form.isbn.value), genre: optional(form.genre.value), description: optional(form.description.value), language: optional(form.language.value), condition: optional(form.condition.value) }; }
 
-$("#candidate-form").addEventListener("submit", async event => { event.preventDefault(); const form = event.currentTarget; try { const prior = state.candidateQueue.find(item => item.id === form.candidateId.value); const updated = await api("/api/manage/candidates/" + form.candidateId.value, { method: "PATCH", body: candidatePayload(form) }); updated._selected = true; updated._metadataProposalId = prior?._metadataProposalId ?? null; const index = state.candidateQueue.findIndex(item => item.id === updated.id); if (index >= 0) state.candidateQueue[index] = updated; form.closest("dialog").close(); renderCandidateBatch(); openDialog("candidate-batch-dialog"); toast("Candidate updated"); } catch (error) { $(".form-status", form).textContent = error.message; } });
+$("#candidate-form").addEventListener("submit", async event => { event.preventDefault(); const form = event.currentTarget; try { const updated = await api("/api/manage/candidates/" + form.candidateId.value, { method: "PATCH", body: candidatePayload(form) }); updated._selected = true; updated._metadataProposalId = null; updated._metadataDecisionMade = false; const index = state.candidateQueue.findIndex(item => item.id === updated.id); if (index >= 0) state.candidateQueue[index] = updated; form.closest("dialog").close(); renderCandidateBatch(); openDialog("candidate-batch-dialog"); toast("Candidate updated — review its refreshed edition matches"); } catch (error) { $(".form-status", form).textContent = error.message; } });
+
+$("#use-displayed-matches").addEventListener("click", () => {
+  let accepted = 0;
+  state.candidateQueue.forEach(candidate => {
+    if (!candidate._selected || !candidate.metadataProposals?.length) return;
+    candidate._metadataProposalId = candidate._metadataProposalId || candidate.metadataProposals[0].id;
+    candidate._metadataDecisionMade = true; accepted += 1;
+  });
+  renderCandidateBatch(); toast("Accepted " + accepted + " displayed edition match" + (accepted === 1 ? "" : "es") + " — review, then add selected books");
+});
 
 $("#candidate-batch-form").addEventListener("submit", async event => {
   event.preventDefault(); const form = event.currentTarget; const selected = state.candidateQueue.filter(candidate => candidate._selected);
   if (!selected.length) { $(".form-status", form).textContent = "Select at least one book, or reject the batch."; return; }
   if (selected.some(candidate => !completeCandidate(candidate))) { $(".form-status", form).textContent = "Edit selected candidates that still need a title or author."; return; }
+  if (selected.some(candidate => candidate.metadataProposals?.length && !candidate._metadataDecisionMade)) { $(".form-status", form).textContent = "Choose an edition, explicitly keep reviewed fields, or use displayed matches before adding books."; return; }
   try {
     for (const candidate of state.candidateQueue) {
       if (candidate._selected) {

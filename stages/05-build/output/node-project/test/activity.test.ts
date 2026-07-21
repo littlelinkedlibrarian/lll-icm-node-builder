@@ -82,6 +82,33 @@ describe("scan activity and edition metadata", () => {
     await app.close();
   });
 
+  it("persists every displayed edition match accepted for a multi-book batch", async () => {
+    const store = new SqliteStore(db), media = new MemoryMediaStore();
+    const box = store.create({ name: "Batch Shelf", description: null, location: null, latitude: null, longitude: null, visibility: "public" });
+    const app = buildApp({ config, db, store, media, vision: new ShelfVision(), bibliography: new Editions() });
+    const scan = await app.inject({ method: "POST", url: "/api/manage/candidates/analyze", headers: auth, payload: { boxId: box.id, mimeType: "image/jpeg", imageBase64: Buffer.from("batch-shelf").toString("base64") } });
+    const candidates = scan.json().candidates;
+
+    for (const [index, candidate] of candidates.entries()) {
+      const displayed = candidate.metadataProposals[0];
+      const selected = await app.inject({ method: "POST", url: `/api/manage/candidates/${candidate.id}/metadata-selection`, headers: auth, payload: { proposalId: displayed.id } });
+      expect(selected.statusCode).toBe(200);
+      const confirmed = await app.inject({ method: "POST", url: `/api/manage/candidates/${candidate.id}/confirm`, headers: auth, payload: { actor: "browser-operator", idempotencyKey: `batch-confirm-${index}` } });
+      expect(confirmed.json().book).toMatchObject({
+        isbn: displayed.isbn13,
+        coverUrl: displayed.coverUrl,
+        description: displayed.description,
+        publicationYear: 2024,
+        metadataProvenance: { provider: "openlibrary", proposalId: displayed.id, sourceUrl: displayed.sourceUrl }
+      });
+    }
+
+    const books = (await app.inject({ method: "GET", url: `/api/manage/books?boxId=${box.id}`, headers: auth })).json().data;
+    expect(books).toHaveLength(2);
+    expect(books.every((book: { isbn: string | null; coverUrl: string | null; metadataProvenance: unknown }) => book.isbn === "9780306406157" && Boolean(book.coverUrl) && Boolean(book.metadataProvenance))).toBe(true);
+    await app.close();
+  });
+
   it("requires an explicit edition choice when recovering metadata for an existing book", async () => {
     const store = new SqliteStore(db);
     const box = store.create({ name: "Recovery Shelf", description: null, location: null, latitude: null, longitude: null, visibility: "public" });
