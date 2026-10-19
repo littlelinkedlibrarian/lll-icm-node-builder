@@ -4,6 +4,14 @@ An instruction-driven workspace using Jake Van Clief and David McDermott's Inter
 
 The repository remains instruction-first: numbered folders are the orchestration layer. A generated reference run is checked in as evidence that the method produces a working application; it is not a required technology stack. Each stage reads explicitly routed context, writes a plain-file artifact, and pauses where human judgment matters. The next stage reads the reviewed artifact.
 
+## New here?
+
+Start with [the learner and agent entry guide](START-HERE.md). Choose a small new project, explore the completed reference run, or consume the hosted Central API. The reference artifacts are not approvals for your own project.
+
+The public projects are [NodeKit](https://github.com/littlelinkedlibrarian/lll-icm-node-builder) (this learning workspace) and [the network registry](https://github.com/littlelinkedlibrarian/lll-network-nodes) (optional admission). Central source is private. Its [public capability guide](https://beta.littlelinkedlibrarian.com/integrations) explains how to use the hosted service without that source.
+
+See [optional lessons from Central](shared/central-capabilities.md) before adopting its more advanced workflows. LLL compatibility still requires only the six-route public-read profile; it does not require copying Central's accounts, vaults or infrastructure.
+
 ## Judge quickstart
 
 ### Live experience

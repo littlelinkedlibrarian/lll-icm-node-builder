@@ -6,6 +6,7 @@ Build a library application or LLL-compatible node through a sequential, human-r
 
 | Task | Go to | Purpose |
 |---|---|---|
+| New learner / new run | `START-HERE.md` | Separate your decisions from the checked-in example |
 | Configure builder | `setup/questionnaire.md` | Set factory preferences once |
 | Define project | `stages/01-discovery/CONTEXT.md` | Capture outcome and constraints |
 | Define behavior | `stages/02-specification/CONTEXT.md` | Create product contracts |
@@ -20,6 +21,7 @@ Build a library application or LLL-compatible node through a sequential, human-r
 | Need | Canonical source |
 |---|---|
 | ICM structure | `shared/icm-conventions.md` |
+| Optional Central integration lessons | `shared/central-capabilities.md` |
 | LLL domain | `shared/lll-domain.md` |
 | Engineering boundaries | `shared/engineering-boundaries.md` |
 | OpenAI and vectors | `shared/openai-capabilities.md` |
