@@ -1,6 +1,6 @@
 # LLL ICM Node Builder
 
-This is an Interpretable Context Methodology workspace for producing library applications and LLL-compatible nodes. The filesystem is the orchestration layer. Do not look for a hidden reference application.
+This is an Interpretable Context Methodology workspace for producing library applications and LLL-compatible nodes. The filesystem is the orchestration layer. The checked-in reference application under `stages/05-build/output/node-project` is one completed example, not a required stack or hidden orchestration engine.
 
 ## Folder map
 
@@ -29,7 +29,7 @@ stages/07-release/          package own-domain or LLL path
 
 ## Routing
 
-Read `CONTEXT.md` on entry. For a stage, load only the files and sections named in that stage's Inputs table. Never load all stages or references by default.
+Read `CONTEXT.md` on entry. For a new learner run, read `START-HERE.md`; checked-in reference outputs and a CONFIGURED profile are not the new learner’s approvals. For a stage, load only the files and sections named in that stage's Inputs table. Never load all stages or references by default.
 
 Stage `CONTEXT.md` files route context. Stable rules have one canonical home in `_config/` or `shared/`. Per-run artifacts live in stage `output/` folders.
 

@@ -15,8 +15,10 @@ The owner defines API, brand, identity, privacy, host, domain, TLS, database, ba
 
 Inspect current public sources:
 
-- https://github.com/littlelinkedlibrarian/lll-lite
+- `stages/05-build/output/node-project/contracts/openapi.yaml` in this repository (pin the Git revision; includes product extensions)
 - https://github.com/littlelinkedlibrarian/lll-network-nodes
+
+The public registry README defines the six-route compatibility profile. Central's larger [hosted API](https://beta.littlelinkedlibrarian.com/api/openapi.json) is a separate contract; see `shared/central-capabilities.md`. Do not require access to private Central source or an unavailable lll-lite repository.
 
 Stop if contract and onboarding sources disagree.
 
