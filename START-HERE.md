@@ -43,4 +43,4 @@ Read [Central capability lessons](shared/central-capabilities.md) only if those 
 
 ## Current review evidence
 
-See [the learning-entry review](docs/reviews/LEARNING-ENTRY-REVIEW.md). The reference app’s clean install is currently blocked on Node 24.12.0/npm 11.6.2 by missing lockfile entries; the older test count in the README is historical evidence, not a fresh check. Instruction-only learning can proceed independently.
+See [the learning-entry review](docs/reviews/LEARNING-ENTRY-REVIEW.md). The clean-install blocker was repaired on Node 24.12.0/npm 11.6.2. `npm ci` succeeds, TypeScript passes and 25 tests pass across 9 files. See [the repair evidence](docs/reviews/CLEAN-INSTALL-REPAIR.md) for scope and remaining dependency advisories.

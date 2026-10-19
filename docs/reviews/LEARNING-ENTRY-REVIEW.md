@@ -31,3 +31,7 @@ Reviewed the ICM routing, seven stage contracts, shared rules, reference-app API
 5. Add a small new-run convention only if the documented branch/preservation workflow proves confusing; avoid a framework before learners need one.
 
 This documentation slice changes no runtime API, deployment flags, admission policy or external accounts. It does not make Central source public.
+
+## Clean-install follow-up — 2026-10-19
+
+The lockfile blocker above is resolved by adding the two missing entries, without changing package.json or existing locked versions. npm ci succeeds; TypeScript and 25 tests across 9 files pass. See [repair evidence](CLEAN-INSTALL-REPAIR.md). The other review findings remain open.
