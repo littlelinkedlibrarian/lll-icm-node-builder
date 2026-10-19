@@ -72,7 +72,7 @@ npm run check
 docker compose -f compose.production.yaml config
 ```
 
-Expected result for the submitted revision: TypeScript passes and 24 tests across 9 files pass.
+Verified 2026-10-19 on Node 24.12.0/npm 11.6.2: clean installation succeeds, TypeScript passes and 25 tests across 9 files pass. See [repair evidence and remaining dependency advisories](docs/reviews/CLEAN-INSTALL-REPAIR.md).
 
 ### Architecture summary
 
